@@ -1,0 +1,12 @@
+# Direct dependencies (pin resolved versions in requirements.lock.txt)
+sliderule
+pandas
+numpy
+pyarrow
+geopandas
+shapely
+pyproj
+matplotlib
+pyyaml
+requests
+pytest

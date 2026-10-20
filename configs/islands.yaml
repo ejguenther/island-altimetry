@@ -1,0 +1,70 @@
+# Site and run configuration. Add an island by adding an entry under `sites`;
+# acquisition logic is site-independent.
+
+defaults:
+  core_radius_m: 2000          # search zone, not an island outline
+  buffer_m: 5000               # additional ocean buffer beyond the core zone
+  products: [atl03, atl08, atl09, atl24, gedi_l2a]
+  start:                       # mission/collection discovery starts (UTC)
+    atl03: "2018-10-13T00:00:00Z"
+    atl08: "2018-10-13T00:00:00Z"
+    atl09: "2018-10-13T00:00:00Z"
+    atl24: "2018-10-13T00:00:00Z"
+    gedi_l2a: "2019-03-25T00:00:00Z"
+  end: latest                  # resolved once per run to UTC now
+  release_policy: sliderule_served_latest   # see docs/m0/NOTES.md
+  data_root: data
+  output_root: outputs
+  workers: 2
+  request_timeout_s: 900
+  retries: 3
+  retry_backoff_s: 20
+  inventory_window_days: 366   # discovery window; split further if a window hits the cap
+  discovery_cap: 300           # server max_resources default (M0)
+  quality_profiles: [diagnostic, baseline, strict]
+  elevated_threshold_m: 5.0    # coherent core returns above local geoid flagged "elevated" (report only)
+  event_window_days: 183      # analysis bucket after first sourced event (not an island lifetime)
+  repeat:
+    centerline_bin_m: 20       # along-track binning of baseline photons in the core zone
+    max_separation_m: 30       # tracks closer than this are "comparable locations"
+    min_overlap_m: 200
+    coherent_min_photons: 5    # coherent-surface bin: strict photons per 20 m bin
+    coherent_max_mad_m: 1.5    # ... with median absolute deviation <= this
+    min_usable_length_m: 100   # pass has a usable core surface if coherent length >= this
+  comparison:
+    max_distance_m: 30
+    max_time_offset_days: 30
+
+sites:
+  fukutoku_okanoba:
+    names: [Fukutoku-Okanoba, Fukutoku-Oka-no-Ba, Niijima (2021 island)]
+    center: {lon: 141.481, lat: 24.285}
+    center_source: >-
+      Smithsonian Global Volcanism Program volcano 284130 reference location
+      (volcano location, not a surveyed island centroid or shoreline)
+    nearby_features:
+      - name: Minami-Ioto
+        approx_center: {lon: 141.4625, lat: 24.2333}   # approximate; ~6.0 km from center
+        note: inside the outer buffer zone; its returns are never measurements of the 2021 island
+    references:
+      - https://doi.org/10.3390/geosciences12010040
+      - https://volcano.si.edu/volcano.cfm?vn=284130
+    events:
+      - id: eruption_onset_2021
+        start: "2021-08-12T21:00:00Z"
+        precision: hour
+        description: >-
+          Submarine eruption begins; first observed by Himawari-8 at ~21:00 UTC
+          12 Aug 2021 (JMA: 06:20 JST 13 Aug)
+        source: https://science.nasa.gov/earth/earth-observatory/fukutoku-okanoba-explodes-148750/
+      - id: new_island_confirmed_2021
+        start: "2021-08-15T00:00:00Z"
+        precision: day
+        description: Japan Coast Guard observation confirms a new island ~1 km across
+        source: https://science.nasa.gov/earth/earth-observatory/fukutoku-okanoba-explodes-148750/
+      - id: eruption_reported_2021
+        start: "2021-08-01T00:00:00Z"
+        precision: month
+        description: August 2021 eruption forming the Niijima island (reference study)
+        source: https://doi.org/10.3390/geosciences12010040
+    # Disappearance/erosion end is not annotated: no sourced date available.

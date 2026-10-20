@@ -1,0 +1,6 @@
+product,cmr_short_name,cmr_latest_version,sliderule_served_release,release_matches_latest,record_unit,access_route,route_status,fields_requested,fields_unsupported,n_unsupported
+atl03,ATL03,007,007,True,photon,atl03x (icesat2),verified,13,,0
+atl08,ATL08,007,007,True,100m_land_segment,atl08x (icesat2-atl08),verified,14,,0
+atl09,ATL09,007,007,True,ancillary_value_per_atl03_photon,atl03x (icesat2-atl09),verified,10,,0
+atl24,ATL24,002,002,True,photon,atl24x (icesat2-atl24),verified,3,,0
+gedi_l2a,GEDI02_A,003,002,False,footprint,gedi02ax (gedil2a),verified,10,landsat_water_persistence,1

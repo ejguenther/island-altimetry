@@ -1,0 +1,35 @@
+{
+  "recorded_utc": "2026-10-19T02:15:41+00:00",
+  "os_release": "Red Hat Enterprise Linux release 8.10 (Ootpa)",
+  "kernel": "4.18.0-553.162.1.el8_10.x86_64",
+  "python": "3.12.15",
+  "python_executable": "/home/ejg2736/dev/island-altimetry/.venv/bin/python",
+  "disk_free_gb": 306.6,
+  "packages": {
+    "sliderule": "5.6.3",
+    "pandas": "3.0.6",
+    "numpy": "2.5.4",
+    "pyarrow": "26.0.0",
+    "geopandas": "1.2.0",
+    "shapely": "2.2.0",
+    "pyproj": "3.8.0",
+    "matplotlib": "3.11.2",
+    "PyYAML": "6.0.3",
+    "requests": "2.34.2",
+    "pytest": "9.1.1"
+  },
+  "sliderule": {
+    "server": {
+      "version": "v5.6.3",
+      "cluster": "sliderule-20261009183035",
+      "duration": 29256327,
+      "launch": "2026-10-18T18:08:05Z",
+      "environment": "v5.6.3-5-g35e70248",
+      "build": "v5.6.3-0-ge620b550-dirty, 6.1.174-217.345.amzn2023.aarch64, Thu Oct  1 10:32:23 UTC 2026"
+    },
+    "client": {
+      "version": "v5.6.3",
+      "organization": "sliderule"
+    }
+  }
+}

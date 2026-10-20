@@ -1,0 +1,142 @@
+product,column,dtype,native_source,units,reference_notes,n,min,max,n_nan,n_float_max_fill
+atl03,time_ns,datetime64[ns],gtx/heights/delta_time -> UTC by SlideRule,UTC datetime64[ns],,848186,,,,
+atl03,tide_ocean,float32,gtx/geophys_corr/tide_ocean,m,provided; NOT applied to h_ph,848186,-0.2116123139858245,-0.2087758779525756,0.0,0.0
+atl03,segment_ph_cnt,int32,server default column,,,848186,18.0,998.0,0.0,0.0
+atl03,sigma_h,float32,gtx/geolocation/sigma_h,m,height uncertainty estimate,848186,0.1295627504587173,0.1328603327274322,0.0,0.0
+atl03,region,uint8,server default column,,,848186,1.0,1.0,0.0,0.0
+atl03,gt,uint8,server default column,,,848186,10.0,60.0,0.0,0.0
+atl03,spacecraft_velocity,float32,server default column,,,848186,7118.763671875,7118.7958984375,0.0,0.0
+atl03,solar_elevation,float32,gtx/geolocation/solar_elevation,degrees,,848186,66.81491088867188,66.94195556640625,0.0,0.0
+atl03,geoid,float32,gtx/geophys_corr/geoid,m,EGM2008 geoid height above ellipsoid (mean-tide),848186,47.34975051879883,47.89664459228516,0.0,0.0
+atl03,delta_time,float64,gtx/heights/delta_time,s since 2018-01-01 (ATLAS SDP epoch),native time,848186,116479405.55596828,116479407.86166836,0.0,0.0
+atl03,rgt,uint16,server default column,,,848186,1199.0,1199.0,0.0,0.0
+atl03,ph_index,uint32,photon index within beam in granule,count,exact integer ID,848186,2661713.0,17138496.0,0.0,0.0
+atl03,height,float32,gtx/heights/h_ph,m,"WGS84 ellipsoid (ITRF2014), no geoid applied",848186,-221.0413360595703,876.0007934570312,0.0,0.0
+atl03,weight_ph,uint16,gtx/heights/weight_ph,score 0-65535,r007 photon weight,848186,1.0,20589.0,0.0,0.0
+atl03,podppd_flag,int8,gtx/geolocation/podppd_flag,flag,geolocation quality,848186,0.0,0.0,0.0,0.0
+atl03,signal_class_ph,int8,gtx/heights/signal_class_ph,class,r007 experimental,848186,-1.0,5.0,0.0,0.0
+atl03,geoid_free2mean,float32,gtx/geophys_corr/geoid_free2mean,m,tide-free to mean-tide conversion,848186,0.0632958933711052,0.0639286860823631,0.0,0.0
+atl03,ref_elev,float32,gtx/geolocation/ref_elev,rad,elevation angle of unit pointing vector,848186,1.5537196397781372,1.567876219749451,0.0,0.0
+atl03,pce_mframe_cnt,uint32,server default column,,,848186,1816941119.0,3457462811.0,0.0,0.0
+atl03,spot,uint8,server default column,,,848186,1.0,6.0,0.0,0.0
+atl03,x_atc,float64,dist_ph_along + segment_dist_x,m,along-track,848186,2692805.8646333707,2706805.442414468,0.0,0.0
+atl03,y_atc,float32,dist_ph_across,m,across-track,848186,-7179.80517578125,-698.9773559570312,0.0,0.0
+atl03,surf_type,object,gtx/geolocation/surf_type,flags[5],"land, ocean, sea ice, land ice, inland water",848186,,,,
+atl03,srcid,int32,server default column,,,848186,0.0,5.0,0.0,0.0
+atl03,cycle,uint8,server default column,,,848186,12.0,12.0,0.0,0.0
+atl03,atl03_cnf,int8,"gtx/heights/signal_conf_ph (max over surface types, srt=-1)",class,-2..4,848186,0.0,4.0,0.0,0.0
+atl03,background_rate,float32,gtx/bckgrd_atlas/bckgrd_rate,photons/s,solar background,848186,834909.125,35933772.0,0.0,0.0
+atl03,segment_id,int32,gtx/geolocation/segment_id,count,exact integer ID,848186,134268.0,134965.0,0.0,0.0
+atl03,solar_azimuth,float32,server default column,,,848186,214.8868408203125,215.1787109375,0.0,0.0
+atl03,quality_ph,int8,gtx/heights/quality_ph,class,"0 nominal,1 afterpulse,2 impulse,3 tep",848186,0.0,0.0,0.0,0.0
+atl03,dac,float32,gtx/geophys_corr/dac,m,"dynamic atmosphere correction; provided, NOT applied to h_ph",848186,-0.0312426388263702,-0.0307282339781522,0.0,0.0
+atl03,geometry,geometry,"gtx/heights/lon_ph, lat_ph",degrees,EPSG:7912 (ITRF2014 lon/lat),848186,,,,
+atl09,srcid,int32,derived/ATL09,,,278,0.0,5.0,0.0,0.0
+atl09,rgt,uint16,derived/ATL09,,,278,1199.0,1199.0,0.0,0.0
+atl09,cycle,uint8,derived/ATL09,,,278,12.0,12.0,0.0,0.0
+atl09,region,uint8,derived/ATL09,,,278,1.0,1.0,0.0,0.0
+atl09,gt,uint8,derived/ATL09,,,278,10.0,60.0,0.0,0.0
+atl09,spot,uint8,derived/ATL09,,,278,1.0,6.0,0.0,0.0
+atl09,high_rate/delta_time,float64,profile_x/high_rate/delta_time,s since 2018-01-01,native profile time,278,116479405.88776831,116479407.84776837,0.0,0.0
+atl09,high_rate/layer_flag,int8,profile_x/high_rate/layer_flag,flag,consolidated cloud flag,278,0.0,1.0,0.0,0.0
+atl09,high_rate/msw_flag,int8,derived/ATL09,,,278,0.0,3.0,0.0,0.0
+atl09,high_rate/apparent_surf_reflec,float32,derived/ATL09,,,278,0.0,0.2060864418745041,0.0,0.0
+atl09,high_rate/cloud_flag_atm,int8,profile_x/high_rate/cloud_flag_atm,count,number of layers,278,0.0,1.0,0.0,0.0
+atl09,high_rate/bsnow_con,int16,derived/ATL09,,,278,32767.0,32767.0,0.0,0.0
+atl09,high_rate/surface_height,float32,profile_x/high_rate/surface_height,m,atmospheric-product surface estimate,278,63.80078125,123.759765625,0.0,2.0
+atl09,high_rate/cloud_flag_asr,int8,derived/ATL09,,,278,3.0,5.0,0.0,0.0
+atl09,high_rate/layer_top,float64,"profile_x/high_rate/layer_top[:,0]",m,TRUNCATED: first layer only,278,333.615234375,1382.888671875,0.0,232.0
+atl09,high_rate/layer_bot,float64,"profile_x/high_rate/layer_bot[:,0]",m,TRUNCATED: first layer only,278,123.759765625,1232.9921875,0.0,232.0
+atl09,n_atl03_photons,int64,derived,count,ATL03 photons sharing this profile in the AOI,278,193.0,8981.0,0.0,0.0
+atl09,photon_time_min,datetime64[ns],derived/ATL09,,,278,,,,
+atl09,photon_time_max,datetime64[ns],derived/ATL09,,,278,,,,
+atl09,lon_mean,float64,derived/ATL09,,,278,141.44147343795538,141.51674655386498,0.0,0.0
+atl09,lat_mean,float64,derived/ATL09,,,278,24.223119627392723,24.3475123799894,0.0,0.0
+atl09,x_atc_min,float64,derived/ATL09,,,278,2692805.8646333707,2706745.813867704,0.0,0.0
+atl09,x_atc_max,float64,derived/ATL09,,,278,2693067.2843606714,2706805.442414468,0.0,0.0
+atl08,time_ns,datetime64[ns],server default column,,,751,,,,
+atl08,segment_watermask,uint8,land_segments/segment_watermask,flag,"0 land, 1 water (static mask)",751,255.0,255.0,0.0,0.0
+atl08,n_te_photons,int32,server default column,,,751,1.0,518.0,0.0,0.0
+atl08,segment_snowcover,uint8,server default column,,,751,0.0,0.0,0.0,0.0
+atl08,sigma_h,float32,server default column,,,751,0.1295631229877472,0.1328602731227874,0.0,0.0
+atl08,cloud_flag_atm,int8,server default column,,,751,0.0,1.0,0.0,0.0
+atl08,layer_flag,int8,server default column,,,751,0.0,1.0,0.0,0.0
+atl08,terrain/h_te_max,float32,server default column,,,751,48.31836318969727,76.8673095703125,0.0,1.0
+atl08,night_flag,uint8,server default column,,,751,0.0,0.0,0.0,0.0
+atl08,region,uint8,server default column,,,751,1.0,1.0,0.0,0.0
+atl08,gt,uint8,server default column,,,751,10.0,60.0,0.0,0.0
+atl08,terrain/h_te_std,float32,server default column,,,751,0.1257284581661224,5.474203586578369,0.0,1.0
+atl08,h_te_uncertainty,float32,land_segments/terrain/h_te_uncertainty,m,,751,0.0942351445555687,3.0178916454315186,1.0,0.0
+atl08,solar_elevation,float32,server default column,,,751,66.81505584716797,66.94195556640625,0.0,0.0
+atl08,segment_id_beg,int32,land_segments/segment_id_beg,count,first ATL03 segment of 100 m segment,751,134267.0,134963.0,0.0,0.0
+atl08,terrain/h_te_best_fit,float32,land_segments/terrain/h_te_best_fit,m,WGS84 ellipsoid,751,44.84358596801758,75.43904876708984,0.0,0.0
+atl08,canopy_h_metrics,object,server default column,,,751,,,,
+atl08,delta_time,float64,land_segments/delta_time,s since 2018-01-01,native time,751,116479405.5600041,116479407.86050887,0.0,0.0
+atl08,segment_cover,int16,server default column,,,751,0.0,0.0,0.0,0.0
+atl08,terrain_slope,float32,server default column,,,751,-0.110105313360691,0.1817135065793991,0.0,0.0
+atl08,rgt,uint16,server default column,,,751,1199.0,1199.0,0.0,0.0
+atl08,h_te_median,float32,land_segments/terrain/h_te_median,m,WGS84 ellipsoid,751,47.67803955078125,75.39794921875,1.0,0.0
+atl08,h_canopy,float32,server default column,,,751,4.387008666992188,27.949256896972656,542.0,0.0
+atl08,n_ca_photons,int32,server default column,,,751,0.0,66.0,0.0,0.0
+atl08,h_mean_canopy,float32,server default column,,,751,1.279948115348816,16.081823348999023,542.0,0.0
+atl08,spot,uint8,server default column,,,751,1.0,6.0,0.0,0.0
+atl08,n_seg_ph,int32,server default column,,,751,52.0,595.0,0.0,0.0
+atl08,segment_id_end,int32,server default column,,,751,134271.0,134967.0,0.0,0.0
+atl08,h_canopy_uncertainty,float32,server default column,,,751,0.5203994512557983,3.452407121658325,543.0,0.0
+atl08,h_max_canopy,float32,server default column,,,751,4.387008666992188,27.949256896972656,542.0,0.0
+atl08,h_min_canopy,float32,server default column,,,751,0.5012474060058594,4.9544677734375,542.0,0.0
+atl08,msw_flag,int8,server default column,,,751,0.0,3.0,0.0,0.0
+atl08,srcid,int32,server default column,,,751,0.0,5.0,0.0,0.0
+atl08,segment_landcover,uint8,server default column,,,751,200.0,200.0,0.0,0.0
+atl08,cycle,uint8,server default column,,,751,12.0,12.0,0.0,0.0
+atl08,canopy_openness,float32,server default column,,,751,1.1975102424621582,7.6323628425598145,542.0,0.0
+atl08,dem_h,float32,land_segments/dem_h,m,reference DEM height (ellipsoid); not independent truth,751,46.94409942626953,100.92283630371094,0.0,0.0
+atl08,terrain/h_te_min,float32,server default column,,,751,44.53017044067383,71.96131896972656,0.0,1.0
+atl08,terrain/h_te_mean,float32,land_segments/terrain/h_te_mean,m,WGS84 ellipsoid,751,47.68126678466797,74.9315185546875,0.0,1.0
+atl08,terrain_flg,uint8,server default column,,,751,0.0,1.0,0.0,0.0
+atl08,geometry,geometry,server default column,,,751,,,,
+atl24,time_ns,datetime64[ns],server default column,,,227966,,,,
+atl24,sensor_depth_exceeded,uint8,server default column,,,227966,0.0,1.0,0.0,0.0
+atl24,night_flag,uint8,server default column,,,227966,0.0,0.0,0.0,0.0
+atl24,region,uint8,server default column,,,227966,1.0,1.0,0.0,0.0
+atl24,class_ph,int8,gtx/class_ph,class,"0 unclassified, 40 bathymetry, 41 sea surface",227966,0.0,41.0,0.0,0.0
+atl24,gt,uint8,server default column,,,227966,10.0,60.0,0.0,0.0
+atl24,sigma_tvu,float32,server default column,,,227966,0.1291329711675644,0.1717279255390167,0.0,0.0
+atl24,surface_h,float32,gtx/surface_h,m,EGM2008 orthometric modeled sea surface,227966,0.5815420746803284,1.0573519468307495,0.0,0.0
+atl24,invalid_wind_speed,uint8,server default column,,,227966,0.0,0.0,0.0,0.0
+atl24,index_seg,int32,server default column,,,227966,134266.0,134964.0,0.0,0.0
+atl24,delta_time,float64,gtx/delta_time,s since 2018-01-01,native time,227966,116479405.55576824,116479407.7571683,0.0,0.0
+atl24,sigma_thu,float32,server default column,,,227966,7.071067810058594,7.072751522064209,0.0,0.0
+atl24,rgt,uint16,server default column,,,227966,1199.0,1199.0,0.0,0.0
+atl24,ortho_h,float32,gtx/ortho_h,m,"EGM2008 orthometric, refraction corrected",227966,-73.95455932617188,49.9987678527832,0.0,0.0
+atl24,invalid_kd,uint8,server default column,,,227966,1.0,1.0,0.0,0.0
+atl24,low_confidence_flag,uint8,server default column,,,227966,0.0,1.0,0.0,0.0
+atl24,index_ph,int32,gtx/index_ph,count,photon index in source ATL03 r006 granule (not r007),227966,2661700.0,17138613.0,0.0,0.0
+atl24,confidence,float64,server default column,,,227966,4.1603367861853264e-08,0.9190129041671752,0.0,0.0
+atl24,spot,uint8,server default column,,,227966,1.0,6.0,0.0,0.0
+atl24,x_atc,float64,gtx/x_atc,m,not refraction corrected,227966,2692805.2169131115,2706795.439787095,0.0,0.0
+atl24,y_atc,float32,server default column,,,227966,-7179.08154296875,-699.775634765625,0.0,0.0
+atl24,srcid,int32,server default column,,,227966,0.0,5.0,0.0,0.0
+atl24,cycle,uint8,server default column,,,227966,12.0,12.0,0.0,0.0
+atl24,ellipse_h,float32,gtx/ellipse_h,m,"ITRF2014 ellipsoidal, refraction corrected",227966,-26.270566940307617,97.87859344482422,0.0,0.0
+atl24,geometry,geometry,"gtx/lon_ph, lat_ph",degrees,refraction corrected,227966,,,,
+gedi_l2a,time_ns,datetime64[ns],server default column,,,1900,,,,
+gedi_l2a,orbit,uint32,server default column,,,1900,15692.0,15692.0,0.0,0.0
+gedi_l2a,track,uint16,server default column,,,1900,8289.0,8289.0,0.0,0.0
+gedi_l2a,elev_lowestmode,float32,server default column,,,1900,48.0576057434082,1483.7076416015625,0.0,0.0
+gedi_l2a,num_detectedmodes,uint8,server default column,,,1900,0.0,13.0,0.0,0.0
+gedi_l2a,elevation_lm,float32,BEAMxxxx/elev_lowestmode,m,WGS84 ellipsoid,1900,48.0576057434082,1483.7076416015625,0.0,0.0
+gedi_l2a,solar_elevation,float32,server default column,,,1900,-45.84886932373047,-45.78042602539063,0.0,0.0
+gedi_l2a,delta_time,float64,BEAMxxxx/delta_time,s since 2018-01-01,native time,1900,117305882.51133144,117305885.13531718,0.0,0.0
+gedi_l2a,elevation_bias_flag,uint8,server default column,,,1900,0.0,1.0,0.0,0.0
+gedi_l2a,shot_number,uint64,BEAMxxxx/shot_number,count,exact uint64 ID,1900,1.569200003003385e+17,1.5692110030033462e+17,0.0,0.0
+gedi_l2a,flags,uint8,SlideRule bitfield,bits,"0x01 degrade, 0x02 l2 quality, 0x04 l4 quality, 0x80 surface",1900,0.0,130.0,0.0,0.0
+gedi_l2a,surface_flag,uint8,server default column,,,1900,0.0,1.0,0.0,0.0
+gedi_l2a,elevation_hr,float32,BEAMxxxx/elev_highestreturn,m,WGS84 ellipsoid,1900,50.31283187866211,1483.7076416015625,0.0,0.0
+gedi_l2a,beam,uint8,server default column,,,1900,0.0,11.0,0.0,0.0
+gedi_l2a,sensitivity,float32,BEAMxxxx/sensitivity,fraction,,1900,-135.21786499023438,300.0614624023437,0.0,0.0
+gedi_l2a,digital_elevation_model,float32,BEAMxxxx/digital_elevation_model,m,TanDEM-X reference; not independent truth,1900,-999999.0,-999999.0,0.0,0.0
+gedi_l2a,srcid,int32,server default column,,,1900,0.0,7.0,0.0,0.0
+gedi_l2a,degrade_flag,uint8,server default column,,,1900,0.0,0.0,0.0,0.0
+gedi_l2a,quality_flag,uint8,server default column,,,1900,0.0,1.0,0.0,0.0
+gedi_l2a,geometry,geometry,server default column,,,1900,,,,

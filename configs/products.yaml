@@ -1,0 +1,120 @@
+# Product access contracts (M0). Values marked `verified` are re-checked live by
+# scripts/check_environment.py; this file states intent, the script records evidence.
+#
+# Field lists are the exploration field selection. Fields that the service cannot
+# return are reported in docs/m0/product_support.csv, never substituted.
+
+products:
+  atl03:
+    title: ICESat-2 ATL03 Global Geolocated Photon Data
+    cmr_short_name: ATL03
+    provider: NSIDC_CPRD
+    sliderule_asset: icesat2
+    endpoint: atl03x
+    record_unit: photon
+    mission_start: "2018-10-13T00:00:00Z"
+    # Permissive diagnostic subset: override every server-side default filter.
+    request_parms:
+      srt: -1              # dynamic surface type: per-photon max confidence across surface types
+      cnf: -2              # include TEP, not-considered, and background photons
+      quality_ph: [0, 1, 2, 3]
+      podppd: 255          # all pointing/geolocation quality bits
+    anc_fields:
+      atl03_ph_fields: [delta_time, signal_class_ph, weight_ph, pce_mframe_cnt]
+      atl03_geo_fields: [segment_ph_cnt, surf_type, podppd_flag, sigma_h, solar_azimuth, ref_elev]
+      atl03_corr_fields: [geoid, geoid_free2mean, tide_ocean, dac]
+    id_fields: [srcid, rgt, cycle, region, gt, spot, segment_id, ph_index]
+
+  atl08:
+    title: ICESat-2 ATL08 Land and Vegetation Height (standard product)
+    cmr_short_name: ATL08
+    provider: NSIDC_CPRD
+    sliderule_asset: icesat2-atl08
+    endpoint: atl08x
+    record_unit: 100m_land_segment
+    mission_start: "2018-10-14T00:00:00Z"
+    request_parms: {}
+    anc_fields:
+      # Paths are relative to <beam>/land_segments (the server prepends it).
+      atl08_fields:
+        - terrain/h_te_best_fit
+        - terrain/h_te_mean
+        - terrain/h_te_min
+        - terrain/h_te_max
+        - terrain/h_te_std
+        - terrain_flg
+        - segment_watermask
+        - msw_flag
+        - cloud_flag_atm
+        - night_flag
+        - layer_flag
+        - sigma_h
+        - dem_h
+        - segment_id_end
+        - delta_time
+    id_fields: [srcid, rgt, cycle, region, gt, spot, segment_id_beg]
+
+  atl09:
+    title: ICESat-2 ATL09 Calibrated Backscatter and Cloud Characteristics
+    cmr_short_name: ATL09
+    provider: NSIDC_CPRD
+    sliderule_asset: icesat2-atl09
+    # No native atl09x endpoint exists; fields are attached to ATL03 photons.
+    endpoint: atl03x (atl09_fields ancillary)
+    record_unit: ancillary_value_per_atl03_photon
+    mission_start: "2018-10-13T00:00:00Z"
+    request_parms: {}
+    anc_fields:
+      atl09_fields:
+        - high_rate/layer_flag
+        - high_rate/cloud_flag_atm
+        - high_rate/cloud_flag_asr
+        - high_rate/msw_flag
+        - high_rate/bsnow_con
+        - high_rate/apparent_surf_reflec
+        - high_rate/layer_top
+        - high_rate/layer_bot
+        - high_rate/surface_height
+        - high_rate/delta_time
+    id_fields: []
+
+  atl24:
+    title: ICESat-2 ATL24 Near-Shore Bathymetry (standard product)
+    cmr_short_name: ATL24
+    provider: NSIDC_CPRD
+    sliderule_asset: icesat2-atl24
+    endpoint: atl24x
+    record_unit: photon
+    mission_start: "2018-10-14T00:00:00Z"
+    request_parms:
+      atl24: {compact: false, class_ph: [0, 40, 41]}   # server default is bathymetry only
+    anc_fields:
+      # Must be nested under the atl24 key; top-level anc_fields are silently ignored.
+      atl24.anc_fields: [index_ph, index_seg, delta_time]
+    id_fields: [srcid, rgt, cycle, region, gt, spot]
+
+  gedi_l2a:
+    title: GEDI L2A Elevation and Height Metrics (footprint level)
+    cmr_short_name: GEDI02_A
+    provider: LPCLOUD
+    sliderule_asset: gedil2a
+    endpoint: gedi02ax
+    record_unit: footprint
+    mission_start: "2019-04-04T00:00:00Z"   # CMR collection start
+    request_parms:
+      degrade_filter: false
+      l2_quality_filter: false
+      surface_filter: false
+    anc_fields:
+      anc_fields:
+        - elev_lowestmode
+        - quality_flag
+        - degrade_flag
+        - surface_flag
+        - sensitivity
+        - num_detectedmodes
+        - elevation_bias_flag
+        - digital_elevation_model
+        # landsat_water_persistence: unsupported by the server (docs/m0)
+        - delta_time
+    id_fields: [srcid, shot_number, beam, orbit, track]

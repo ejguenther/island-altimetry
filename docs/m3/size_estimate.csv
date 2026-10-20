@@ -1,0 +1,6 @@
+product,n_sampled,mean_mb,max_mb,mean_rows,mean_request_s,n_resources,est_total_gb,est_total_gb_upper,est_serial_hours
+atl03,4,15.15,32.98,491498,23.4,67,1.02,2.21,0.44
+atl09,2,0.03,0.03,273,117.9,67,0.0,0.0,2.19
+atl08,2,0.1,0.13,423,39.7,66,0.01,0.01,0.73
+atl24,2,5.42,9.85,123027,63.7,54,0.29,0.53,0.96
+gedi_l2a,1,0.13,0.13,1900,68.9,36,0.0,0.0,0.69

@@ -1,0 +1,591 @@
+{
+  "run_id": "fukutoku_okanoba_20261019T120708Z",
+  "samples": {
+    "atl03": [
+      "ATL03_20210910031707_11991201_007_01",
+      "ATL03_20210921145752_13741207_007_01",
+      "ATL03_20210721175359_04291207_007_01",
+      "ATL03_20211209225707_11991301_007_01",
+      "ATL03_20260712030748_04293207_007_01"
+    ],
+    "atl09": [
+      "ATL03_20210910031707_11991201_007_01",
+      "ATL03_20210921145752_13741207_007_01",
+      "ATL03_20250304143235_11992601_007_01"
+    ],
+    "atl08": [
+      "ATL08_20210910031707_11991201_007_01",
+      "ATL08_20210921145752_13741207_007_01",
+      "ATL08_20210721175359_04291207_007_01"
+    ],
+    "atl24": [
+      "ATL24_20210910031707_11991201_006_02_002_01",
+      "ATL24_20210921145752_13741207_006_02_002_01"
+    ],
+    "gedi_l2a": [
+      "GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002"
+    ]
+  },
+  "checks": {
+    "time_conversion": {
+      "atl03:ATL03_20210910031707_11991201_007_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 0.0,
+        "residual_s_maxabs": 2.47e-07,
+        "pass": true
+      },
+      "atl03:ATL03_20210921145752_13741207_007_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 1e-09,
+        "residual_s_maxabs": 2.47e-07,
+        "pass": true
+      },
+      "atl03:ATL03_20210721175359_04291207_007_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 0.0,
+        "residual_s_maxabs": 2.47e-07,
+        "pass": true
+      },
+      "atl03:ATL03_20260712030748_04293207_007_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 0.0,
+        "residual_s_maxabs": 2.47e-07,
+        "pass": true
+      },
+      "atl08:ATL08_20210910031707_11991201_007_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 9e-09,
+        "residual_s_maxabs": 2.36e-07,
+        "pass": true
+      },
+      "atl08:ATL08_20210921145752_13741207_007_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": -1.1e-08,
+        "residual_s_maxabs": 2.28e-07,
+        "pass": true
+      },
+      "atl24:ATL24_20210910031707_11991201_006_02_002_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 0.0,
+        "residual_s_maxabs": 1.19e-07,
+        "pass": true
+      },
+      "atl24:ATL24_20210921145752_13741207_006_02_002_01": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 1e-09,
+        "residual_s_maxabs": 1.2e-07,
+        "pass": true
+      },
+      "gedi_l2a:GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": {
+        "rule": "UTC = 2018-01-01T00:00:00Z + delta_time (GPS-UTC offset embedded in ATLAS epoch)",
+        "residual_s_median": 1e-09,
+        "residual_s_maxabs": 2.46e-07,
+        "pass": true
+      }
+    },
+    "spatial": {
+      "atl03:ATL03_20210910031707_11991201_007_01": {
+        "n": 848186,
+        "outside_outer": 295,
+        "in_core": 109796
+      },
+      "atl03:ATL03_20210921145752_13741207_007_01": {
+        "n": 22044,
+        "outside_outer": 0,
+        "in_core": 2271
+      },
+      "atl03:ATL03_20210721175359_04291207_007_01": {
+        "n": 5268,
+        "outside_outer": 0,
+        "in_core": 840
+      },
+      "atl03:ATL03_20260712030748_04293207_007_01": {
+        "n": 1090495,
+        "outside_outer": 340,
+        "in_core": 185510
+      },
+      "atl08:ATL08_20210910031707_11991201_007_01": {
+        "n": 751,
+        "outside_outer": 0,
+        "in_core": 76
+      },
+      "atl08:ATL08_20210921145752_13741207_007_01": {
+        "n": 96,
+        "outside_outer": 0,
+        "in_core": 6
+      },
+      "atl24:ATL24_20210910031707_11991201_006_02_002_01": {
+        "n": 227966,
+        "outside_outer": 0,
+        "in_core": 13526
+      },
+      "atl24:ATL24_20210921145752_13741207_006_02_002_01": {
+        "n": 18088,
+        "outside_outer": 0,
+        "in_core": 1832
+      },
+      "gedi_l2a:GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": {
+        "n": 1900,
+        "outside_outer": 0,
+        "in_core": 304
+      }
+    },
+    "identifiers": {
+      "atl03:ATL03_20210910031707_11991201_007_01": {
+        "ph_index_dtype": "uint32",
+        "dup_(srcid,gt,ph_index)": 0,
+        "segment_id_dtype": "int32"
+      },
+      "atl03:ATL03_20210921145752_13741207_007_01": {
+        "ph_index_dtype": "uint32",
+        "dup_(srcid,gt,ph_index)": 0,
+        "segment_id_dtype": "int32"
+      },
+      "atl03:ATL03_20210721175359_04291207_007_01": {
+        "ph_index_dtype": "uint32",
+        "dup_(srcid,gt,ph_index)": 0,
+        "segment_id_dtype": "int32"
+      },
+      "atl03:ATL03_20260712030748_04293207_007_01": {
+        "ph_index_dtype": "uint32",
+        "dup_(srcid,gt,ph_index)": 0,
+        "segment_id_dtype": "int32"
+      },
+      "atl08:ATL08_20210910031707_11991201_007_01": {
+        "dup_(gt,segment_id_beg)": 0
+      },
+      "atl08:ATL08_20210921145752_13741207_007_01": {
+        "dup_(gt,segment_id_beg)": 0
+      },
+      "gedi:GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": {
+        "shot_number_dtype": "uint64",
+        "dup_shot_number": 0,
+        "example": "156920000300338509"
+      },
+      "atl24:ATL24_20210910031707_11991201_006_02_002_01": {
+        "index_ph_dtype": "int32",
+        "dup_(gt,index_ph)": 0
+      },
+      "atl24:ATL24_20210921145752_13741207_006_02_002_01": {
+        "index_ph_dtype": "int32",
+        "dup_(gt,index_ph)": 0
+      }
+    },
+    "filter_overrides": {
+      "atl03:ATL03_20210910031707_11991201_007_01": {
+        "atl03_cnf": {
+          "0": 658777,
+          "1": 19606,
+          "2": 21680,
+          "3": 20534,
+          "4": 127589
+        },
+        "quality_ph": {
+          "0": 848186
+        }
+      },
+      "atl03:ATL03_20210921145752_13741207_007_01": {
+        "atl03_cnf": {
+          "-1": 1950,
+          "0": 1949,
+          "1": 67,
+          "2": 90,
+          "3": 427,
+          "4": 17561
+        },
+        "quality_ph": {
+          "0": 22044
+        }
+      },
+      "atl03:ATL03_20210721175359_04291207_007_01": {
+        "atl03_cnf": {
+          "-1": 730,
+          "0": 2996,
+          "1": 22,
+          "2": 661,
+          "3": 645,
+          "4": 214
+        },
+        "quality_ph": {
+          "0": 5268
+        }
+      },
+      "atl03:ATL03_20260712030748_04293207_007_01": {
+        "atl03_cnf": {
+          "-1": 7845,
+          "0": 992772,
+          "1": 27545,
+          "2": 30002,
+          "3": 28299,
+          "4": 4032
+        },
+        "quality_ph": {
+          "0": 1090495
+        }
+      },
+      "atl24:ATL24_20210910031707_11991201_006_02_002_01": {
+        "class_ph": {
+          "0": 121278,
+          "40": 55,
+          "41": 106633
+        },
+        "low_confidence_flag": {
+          "0": 227957,
+          "1": 9
+        }
+      },
+      "atl24:ATL24_20210921145752_13741207_006_02_002_01": {
+        "class_ph": {
+          "0": 2387,
+          "41": 15701
+        },
+        "low_confidence_flag": {
+          "0": 18088
+        }
+      },
+      "gedi:GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": {
+        "degrade_set": 0,
+        "l2_quality_set": 1306,
+        "l2_quality_not_set": 594,
+        "surface_set": 1782
+      }
+    },
+    "vertical_reference": {
+      "atl03_height_equals_native_h_ph": {
+        "n": 109909,
+        "max_abs_diff_m": 0.0,
+        "pass": true
+      },
+      "gedi_elevation_lm_equals_elev_lowestmode:GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": {
+        "max_abs_diff_m": 0.0,
+        "pass": true
+      },
+      "atl24_ellipse_minus_ortho:ATL24_20210910031707_11991201_006_02_002_01": {
+        "median_m": 47.7113094329834,
+        "range_m": 0.5473918914794922
+      },
+      "atl24_ellipse_minus_ortho:ATL24_20210921145752_13741207_006_02_002_01": {
+        "median_m": 47.68120098114014,
+        "range_m": 0.6739425659179688
+      },
+      "atl03_conf>=3_height_minus_geoid_median:ATL03_20210910031707_11991201_007_01": {
+        "median_height_m": 48.52200698852539,
+        "median_geoid_m": 47.693233489990234,
+        "median_height_minus_geoid_m": 0.8606224060058594,
+        "note": "near zero over open ocean supports ellipsoidal heights with EGM2008 geoid"
+      },
+      "atl03_conf>=3_height_minus_geoid_median:ATL03_20210921145752_13741207_007_01": {
+        "median_height_m": 48.49372100830078,
+        "median_geoid_m": 47.693511962890625,
+        "median_height_minus_geoid_m": 0.8001041412353516,
+        "note": "near zero over open ocean supports ellipsoidal heights with EGM2008 geoid"
+      },
+      "atl03_conf>=3_height_minus_geoid_median:ATL03_20210721175359_04291207_007_01": {
+        "median_height_m": -84.81494903564453,
+        "median_geoid_m": 47.75254440307617,
+        "median_height_minus_geoid_m": -132.69004821777344,
+        "note": "near zero over open ocean supports ellipsoidal heights with EGM2008 geoid"
+      },
+      "atl03_conf>=3_height_minus_geoid_median:ATL03_20260712030748_04293207_007_01": {
+        "median_height_m": 47.92026138305664,
+        "median_geoid_m": 47.40464401245117,
+        "median_height_minus_geoid_m": 0.46160125732421875,
+        "note": "near zero over open ocean supports ellipsoidal heights with EGM2008 geoid"
+      }
+    },
+    "atl09_reduction": {
+      "ATL03_20210910031707_11991201_007_01": {
+        "n_photons_in": 848186,
+        "n_profiles": 278,
+        "inconsistent_within_profile": {},
+        "truncated_array_fields": [
+          "high_rate/layer_top",
+          "high_rate/layer_bot"
+        ],
+        "note": "ATL09 values attached per ATL03 photon by SlideRule; reduced to one row per (beam, high_rate/delta_time). lon/lat are means of the ATL03 photons sharing the profile."
+      },
+      "ATL03_20210921145752_13741207_007_01": {
+        "n_photons_in": 22044,
+        "n_profiles": 268,
+        "inconsistent_within_profile": {},
+        "truncated_array_fields": [
+          "high_rate/layer_top",
+          "high_rate/layer_bot"
+        ],
+        "note": "ATL09 values attached per ATL03 photon by SlideRule; reduced to one row per (beam, high_rate/delta_time). lon/lat are means of the ATL03 photons sharing the profile."
+      },
+      "ATL03_20250304143235_11992601_007_01": null
+    },
+    "fill_values": {
+      "atl03:ATL03_20210910031707_11991201_007_01": {},
+      "atl03:ATL03_20210921145752_13741207_007_01": {},
+      "atl03:ATL03_20210721175359_04291207_007_01": {},
+      "atl03:ATL03_20260712030748_04293207_007_01": {},
+      "atl09:ATL03_20210910031707_11991201_007_01": {
+        "high_rate/surface_height": {
+          "nan": 0,
+          "float_max_fill": 2
+        },
+        "high_rate/layer_top": {
+          "nan": 0,
+          "float_max_fill": 232
+        },
+        "high_rate/layer_bot": {
+          "nan": 0,
+          "float_max_fill": 232
+        }
+      },
+      "atl09:ATL03_20210921145752_13741207_007_01": {
+        "high_rate/surface_height": {
+          "nan": 0,
+          "float_max_fill": 67
+        }
+      },
+      "atl08:ATL08_20210910031707_11991201_007_01": {
+        "terrain/h_te_max": {
+          "nan": 0,
+          "float_max_fill": 1
+        },
+        "terrain/h_te_std": {
+          "nan": 0,
+          "float_max_fill": 1
+        },
+        "h_te_uncertainty": {
+          "nan": 1,
+          "float_max_fill": 0
+        },
+        "h_te_median": {
+          "nan": 1,
+          "float_max_fill": 0
+        },
+        "h_canopy": {
+          "nan": 542,
+          "float_max_fill": 0
+        },
+        "h_mean_canopy": {
+          "nan": 542,
+          "float_max_fill": 0
+        },
+        "h_canopy_uncertainty": {
+          "nan": 543,
+          "float_max_fill": 0
+        },
+        "h_max_canopy": {
+          "nan": 542,
+          "float_max_fill": 0
+        },
+        "h_min_canopy": {
+          "nan": 542,
+          "float_max_fill": 0
+        },
+        "canopy_openness": {
+          "nan": 542,
+          "float_max_fill": 0
+        },
+        "terrain/h_te_min": {
+          "nan": 0,
+          "float_max_fill": 1
+        },
+        "terrain/h_te_mean": {
+          "nan": 0,
+          "float_max_fill": 1
+        }
+      },
+      "atl08:ATL08_20210921145752_13741207_007_01": {
+        "h_canopy": {
+          "nan": 96,
+          "float_max_fill": 0
+        },
+        "h_mean_canopy": {
+          "nan": 96,
+          "float_max_fill": 0
+        },
+        "h_canopy_uncertainty": {
+          "nan": 96,
+          "float_max_fill": 0
+        },
+        "h_max_canopy": {
+          "nan": 96,
+          "float_max_fill": 0
+        },
+        "h_min_canopy": {
+          "nan": 96,
+          "float_max_fill": 0
+        },
+        "canopy_openness": {
+          "nan": 96,
+          "float_max_fill": 0
+        }
+      },
+      "atl24:ATL24_20210910031707_11991201_006_02_002_01": {},
+      "atl24:ATL24_20210921145752_13741207_006_02_002_01": {},
+      "gedi_l2a:GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": {}
+    },
+    "behaviour": {
+      "empty_aoi_response": {
+        "status": "no_samples_in_aoi",
+        "n": 0,
+        "pass": true
+      },
+      "no_granules_response": {
+        "status": "no_granules",
+        "pass": true
+      },
+      "duplicate_resource_in_request": {
+        "single_n": 751,
+        "double_n": 1502,
+        "note": "pipeline issues one request per unique granule; duplicates in a request are not de-duplicated by the server"
+      },
+      "inventory_duplicate_granules": {
+        "counts": {
+          "atl03": 0,
+          "atl08": 0,
+          "atl09": 0,
+          "atl24": 0,
+          "gedi_l2a": 0
+        },
+        "pass": true
+      },
+      "interrupted_chunk_detected": {
+        "is_complete_after_tamper": false
+      },
+      "interrupted_chunk_refetched": {
+        "status": "ok",
+        "complete": true,
+        "stray_partial_removed": true,
+        "pass": true
+      },
+      "resume_skips_complete": {
+        "skipped": {
+          "atl03": 5,
+          "atl09": 3,
+          "atl08": 3,
+          "atl24": 2,
+          "gedi_l2a": 1
+        },
+        "terminal": {
+          "atl03": 5,
+          "atl09": 3,
+          "atl08": 3,
+          "atl24": 2,
+          "gedi_l2a": 1
+        },
+        "pass": true
+      }
+    }
+  },
+  "sample_status": {
+    "atl03": {
+      "ATL03_20210910031707_11991201_007_01": "ok",
+      "ATL03_20210921145752_13741207_007_01": "ok",
+      "ATL03_20210721175359_04291207_007_01": "ok",
+      "ATL03_20211209225707_11991301_007_01": "no_samples_in_aoi",
+      "ATL03_20260712030748_04293207_007_01": "ok"
+    },
+    "atl09": {
+      "ATL03_20210910031707_11991201_007_01": "ok",
+      "ATL03_20210921145752_13741207_007_01": "ok",
+      "ATL03_20250304143235_11992601_007_01": "no_granules"
+    },
+    "atl08": {
+      "ATL08_20210910031707_11991201_007_01": "ok",
+      "ATL08_20210921145752_13741207_007_01": "ok",
+      "ATL08_20210721175359_04291207_007_01": "no_samples_in_aoi"
+    },
+    "atl24": {
+      "ATL24_20210910031707_11991201_006_02_002_01": "ok",
+      "ATL24_20210921145752_13741207_006_02_002_01": "ok"
+    },
+    "gedi_l2a": {
+      "GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": "ok"
+    }
+  },
+  "sample_rows": {
+    "atl03": {
+      "ATL03_20210910031707_11991201_007_01": 848186,
+      "ATL03_20210921145752_13741207_007_01": 22044,
+      "ATL03_20210721175359_04291207_007_01": 5268,
+      "ATL03_20211209225707_11991301_007_01": 0,
+      "ATL03_20260712030748_04293207_007_01": 1090495
+    },
+    "atl09": {
+      "ATL03_20210910031707_11991201_007_01": 278,
+      "ATL03_20210921145752_13741207_007_01": 268,
+      "ATL03_20250304143235_11992601_007_01": 0
+    },
+    "atl08": {
+      "ATL08_20210910031707_11991201_007_01": 751,
+      "ATL08_20210921145752_13741207_007_01": 96,
+      "ATL08_20210721175359_04291207_007_01": 0
+    },
+    "atl24": {
+      "ATL24_20210910031707_11991201_006_02_002_01": 227966,
+      "ATL24_20210921145752_13741207_006_02_002_01": 18088
+    },
+    "gedi_l2a": {
+      "GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002": 1900
+    }
+  },
+  "size_estimate": [
+    {
+      "product": "atl03",
+      "n_sampled": 4,
+      "mean_mb": 15.15,
+      "max_mb": 32.98,
+      "mean_rows": 491498,
+      "mean_request_s": 23.4,
+      "n_resources": 67,
+      "est_total_gb": 1.02,
+      "est_total_gb_upper": 2.21,
+      "est_serial_hours": 0.44
+    },
+    {
+      "product": "atl09",
+      "n_sampled": 2,
+      "mean_mb": 0.03,
+      "max_mb": 0.03,
+      "mean_rows": 273,
+      "mean_request_s": 117.9,
+      "n_resources": 67,
+      "est_total_gb": 0.0,
+      "est_total_gb_upper": 0.0,
+      "est_serial_hours": 2.19
+    },
+    {
+      "product": "atl08",
+      "n_sampled": 2,
+      "mean_mb": 0.1,
+      "max_mb": 0.13,
+      "mean_rows": 423,
+      "mean_request_s": 39.7,
+      "n_resources": 66,
+      "est_total_gb": 0.01,
+      "est_total_gb_upper": 0.01,
+      "est_serial_hours": 0.73
+    },
+    {
+      "product": "atl24",
+      "n_sampled": 2,
+      "mean_mb": 5.42,
+      "max_mb": 9.85,
+      "mean_rows": 123027,
+      "mean_request_s": 63.7,
+      "n_resources": 54,
+      "est_total_gb": 0.29,
+      "est_total_gb_upper": 0.53,
+      "est_serial_hours": 0.96
+    },
+    {
+      "product": "gedi_l2a",
+      "n_sampled": 1,
+      "mean_mb": 0.13,
+      "max_mb": 0.13,
+      "mean_rows": 1900,
+      "mean_request_s": 68.9,
+      "n_resources": 36,
+      "est_total_gb": 0.0,
+      "est_total_gb_upper": 0.0,
+      "est_serial_hours": 0.69
+    }
+  ]
+}

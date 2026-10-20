@@ -1,0 +1,141 @@
+{
+  "atl03": {
+    "endpoint": "atl03x",
+    "parms_excluding_poly": {
+      "srt": -1,
+      "cnf": -2,
+      "quality_ph": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "podppd": 255,
+      "atl03_ph_fields": [
+        "delta_time",
+        "signal_class_ph",
+        "weight_ph",
+        "pce_mframe_cnt"
+      ],
+      "atl03_geo_fields": [
+        "segment_ph_cnt",
+        "surf_type",
+        "podppd_flag",
+        "sigma_h",
+        "solar_azimuth",
+        "ref_elev"
+      ],
+      "atl03_corr_fields": [
+        "geoid",
+        "geoid_free2mean",
+        "tide_ocean",
+        "dac"
+      ]
+    },
+    "poly": "outer AOI from data/<site>/aoi/<aoi_hash>/outer.geojson as SlideRule {lon,lat} list",
+    "resources": [
+      "ATL03_20210910031707_11991201_007_01.h5"
+    ]
+  },
+  "atl09": {
+    "endpoint": "atl03x",
+    "parms_excluding_poly": {
+      "srt": -1,
+      "cnf": -2,
+      "quality_ph": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "podppd": 255,
+      "atl09_fields": [
+        "high_rate/layer_flag",
+        "high_rate/cloud_flag_atm",
+        "high_rate/cloud_flag_asr",
+        "high_rate/msw_flag",
+        "high_rate/bsnow_con",
+        "high_rate/apparent_surf_reflec",
+        "high_rate/layer_top",
+        "high_rate/layer_bot",
+        "high_rate/surface_height",
+        "high_rate/delta_time"
+      ]
+    },
+    "poly": "outer AOI from data/<site>/aoi/<aoi_hash>/outer.geojson as SlideRule {lon,lat} list",
+    "resources": [
+      "ATL03_20210910031707_11991201_007_01.h5"
+    ]
+  },
+  "atl08": {
+    "endpoint": "atl08x",
+    "parms_excluding_poly": {
+      "atl08_fields": [
+        "terrain/h_te_best_fit",
+        "terrain/h_te_mean",
+        "terrain/h_te_min",
+        "terrain/h_te_max",
+        "terrain/h_te_std",
+        "terrain_flg",
+        "segment_watermask",
+        "msw_flag",
+        "cloud_flag_atm",
+        "night_flag",
+        "layer_flag",
+        "sigma_h",
+        "dem_h",
+        "segment_id_end",
+        "delta_time"
+      ]
+    },
+    "poly": "outer AOI from data/<site>/aoi/<aoi_hash>/outer.geojson as SlideRule {lon,lat} list",
+    "resources": [
+      "ATL08_20210910031707_11991201_007_01.h5"
+    ]
+  },
+  "atl24": {
+    "endpoint": "atl24x",
+    "parms_excluding_poly": {
+      "atl24": {
+        "compact": false,
+        "class_ph": [
+          0,
+          40,
+          41
+        ],
+        "anc_fields": [
+          "index_ph",
+          "index_seg",
+          "delta_time"
+        ]
+      }
+    },
+    "poly": "outer AOI from data/<site>/aoi/<aoi_hash>/outer.geojson as SlideRule {lon,lat} list",
+    "resources": [
+      "ATL24_20210910031707_11991201_006_02_002_01.h5"
+    ]
+  },
+  "gedi_l2a": {
+    "endpoint": "gedi02ax",
+    "parms_excluding_poly": {
+      "degrade_filter": false,
+      "l2_quality_filter": false,
+      "surface_filter": false,
+      "anc_fields": [
+        "elev_lowestmode",
+        "quality_flag",
+        "degrade_flag",
+        "surface_flag",
+        "sensitivity",
+        "num_detectedmodes",
+        "elevation_bias_flag",
+        "digital_elevation_model",
+        "delta_time"
+      ]
+    },
+    "poly": "outer AOI from data/<site>/aoi/<aoi_hash>/outer.geojson as SlideRule {lon,lat} list",
+    "resources": [
+      "GEDI02_A_2021262155644_O15692_03_T08289_02_003_02_V002.h5"
+    ]
+  }
+}

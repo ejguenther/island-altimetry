@@ -4,6 +4,9 @@ SlideRule server and NASA CMR collection metadata.
 
 Writes docs/m0/environment.json, docs/m0/product_support.csv,
 docs/m0/product_contracts.json. No credentials are read or written.
+
+  check_environment.py --planet-only   # M8: Planet SDK import + auth check only
+(the Planet check uses the SDK's saved login or PL_API_KEY; tokens are never printed)
 """
 
 from __future__ import annotations
@@ -138,10 +141,38 @@ def probe_fields(api: str, base: dict, field_key: str, fields: list[str],
     return ok, bad, {"status": res.status, "n": res.n, "alerts": [a["text"] for a in res.alerts if a["code"] < 0][:5]}
 
 
+def planet_check() -> bool:
+    """One tiny Data API search over the probe point; True if authenticated."""
+    import asyncio
+
+    try:
+        from planet import Session, data_filter
+    except ImportError as e:
+        print(f"planet: SDK not installed ({e})")
+        return False
+
+    async def probe():
+        flt = data_filter.and_filter([
+            data_filter.geometry_filter({"type": "Point", "coordinates": list(PROBE_CENTER)}),
+            data_filter.date_range_filter("acquired", gte=dt.datetime(2021, 9, 1), lte=dt.datetime(2021, 9, 5))])
+        async with Session() as sess:
+            return [i async for i in sess.client("data").search(["PSScene"], search_filter=flt, limit=1)]
+    try:
+        n = len(asyncio.run(probe()))
+        print(f"planet: SDK {md.version('planet')} authenticated (probe search returned {n} item)")
+        return True
+    except Exception as e:
+        print(f"planet: auth/search failed: {type(e).__name__}. Run `planet auth login` (or set PL_API_KEY).")
+        return False
+
+
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(ROOT / "docs" / "m0"))
+    ap.add_argument("--planet-only", action="store_true", help="only check the Planet SDK and auth")
     args = ap.parse_args()
+    if args.planet_only:
+        sys.exit(0 if planet_check() else 1)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 

@@ -65,3 +65,15 @@ ATL03 62/5/0/0, ATL08 42/18/0/6, ATL09 61/5/1/0, ATL24 50/4/0/0, GEDI L2A 26/10/
   481 pairs) +0.10 m buffer / +0.23 m core, tides/DAC not applied.
 - The report computes revisits of the elevated locations directly; most of the
   227 post-onset repeat pairs repeat the sea surface.
+
+## M8 — coincident PlanetScope imagery
+- Targets: every ATL03 and GEDI L2A granule whose footprint crosses the outer AOI
+  (fukutoku_okanoba: 66 ATL03 + 23 GEDI = 89). Overpass time is the median sample
+  time of the cached AOI subset (82 targets), or the granule start when no subset
+  exists (7).
+- Match rule: the closest PSScene strip with >= 95% AOI footprint coverage and
+  >= 80% AOI clear (Planet UDM2 coverage estimate). Tiers are ±12 h, 1 d, 3 d, 7 d
+  and 30 d. The closest rejected strip is kept as a near miss for manual review.
+- Orders: SR 8b → SR 4b → analytic 4b (+UDM2), clipped to the outer disk and
+  harmonized to Sentinel-2. They are budget-capped and only placed with `--submit`.
+- Search, order and QC results: see `docs/m8/NOTES.md`.

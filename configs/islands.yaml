@@ -34,6 +34,21 @@ defaults:
   comparison:
     max_distance_m: 30
     max_time_offset_days: 30
+  imagery:
+    planet:                    # M8: PlanetScope scenes matched to lidar overpasses
+      item_type: PSScene
+      match_aoi: core          # footprint + clear criteria evaluated over the 2 km core
+      clip_aoi: outer          # orders clipped to the 7 km disk (context; may be partial)
+      scene_cloud_max: 0.5     # server-side pre-filter on scene-wide cloud_cover
+      standard_quality_only: false  # open ocean: all scenes are `test` quality (no ground control)
+      aoi_clear_min: 0.80      # per-AOI clear fraction from the coverage endpoint
+      coverage_mode: UDM2      # full-res UDM2 (no quota); "estimate" overstated clear under haze
+      aoi_footprint_min: 0.95  # strip footprint union must cover this AOI fraction
+      tiers_hours: {same_day: 12, d1: 24, d3: 72, d7: 168, d30: 720}
+      bundles: [analytic_8b_sr_udm2, analytic_sr_udm2, analytic_udm2, analytic_3b_udm2]
+      harmonize: true          # harmonize_tool -> Sentinel-2 (SR bundles only)
+      order_budget_km2: null   # hard cap enforced by planet_order.py --submit
+      coverage_workers: 4
 
 sites:
   fukutoku_okanoba:

@@ -131,3 +131,57 @@ imagery taken close to each lidar overpass is the independent evidence needed.
   crescent, crossed by the ATL03 tracks of 2021-09-10 and 2021-09-21.
 - **2021-11-09:** a discoloured-water plume is visible around the vent.
 
+
+### Coverage-activation bug and corrected search (2026-10-20)
+- **Bug:** `get_item_coverage(mode="UDM2")` first returns `{"status": "activating"}`
+  for scenes whose UDM2 mask is not ready yet. `estimate_coverage` stored that
+  as a result with no clear value and moved on. Only 51 scenes got a real
+  figure, so most candidate strips had an unknown clear fraction. That made the
+  "53 unmatched" count above wrong, and the statement "no better strips to order
+  within ±7 d" was also wrong.
+- **Fix:** scenes still activating are asked again every 60 s, for up to 15
+  rounds. Only complete results are cached. The search prints
+  complete/incomplete/failed counts (also in the manifest) and warns when any
+  are unresolved.
+- **Corrected rerun** (tiers now include `d32`; coverage 746 complete,
+  0 incomplete, 2 failed):
+
+  | tier | same_day | d1 | d3 | d7 | d30 | d32 | unmatched |
+  |---|---|---|---|---|---|---|---|
+  | all targets (89) | 3 | 5 | 14 | 10 | 27 | 0 | 30 |
+
+- **Better strips not ordered:** of the 32 targets matched within ±7 d, 23 use
+  strips that were already ordered. For the other 9 a clearer strip exists that
+  was never ordered (e.g. 2024-01-15 at −46 h, 99% clear; 2024-04-15 at −42 h,
+  97%). It would cost roughly 1,300 km² to order them.
+
+### Gap-fill for track/imagery figures (`planet_gapfill.py`)
+- **Targets:** the 36 passes in `track_imagery_pairs.csv` with no strip within
+  ±7 d.
+- **Rule:** the clearest strip within ±32 d (core footprint >= 0.95, else the
+  largest footprint; then the highest UDM2 core clear; then the smallest |dt|).
+  There is no clear threshold, because these are reference images.
+- **Result** (`planet_gapfill_plan.csv`):
+  - 21 passes got new strips: 16 orders, about 2,099 km² (budget 3,000), all
+    downloaded and MD5-checked.
+  - 1 pass reuses an existing strip.
+  - 14 passes have no PSScene of any cloud level touching the core within
+    ±32 d, mostly 2018–2021.
+- **QC:** measured core clear for the new strips matches UDM2 within 0.02. Two
+  are cloudy, but they were the clearest available: 2020-03-31 (29%) and
+  2022-07-27 (22%).
+- **Figures:** re-plotted with `--max-dt-days 32 --pick clearest`. 54 of the 68
+  figures now have imagery. 2021-09-10 now pairs with 2021-08-23 (−435 h,
+  100% clear), which shows the young island and plume crossed by both beams.
+
+### Clearer ±7 d strips (ordered 2026-10-20)
+- **Ordered:** the 9 strips identified by the corrected search, through
+  `planet_order.py --targets <9 granules> --budget-km2 1350 --submit`. That is
+  about 1,294 km², all `analytic_8b_sr_udm2`.
+- **Downloaded and checked:** all 9 downloaded and passed MD5 checks (60 strips
+  in total). Measured core clear is 0.81–1.00, within 0.02 of UDM2.
+- **Figures:** the 7 core-crossing figures among those 9 targets were redrawn with
+  `--max-dt-days 7 --pick clearest`. Nearest-in-time would still choose the older,
+  cloudier strip in some cases. 2021-11-18 picked the 2021-11-14 gap-fill strip
+  (99% clear, −106 h), which is even clearer than the new 2021-11-21 strip.
+- **Total Planet quota ordered so far:** about 5,106 + 2,099 + 1,294 ≈ 8,500 km².

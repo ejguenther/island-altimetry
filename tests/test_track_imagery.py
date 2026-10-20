@@ -52,3 +52,11 @@ def test_to_raster_xy_centre_maps_to_site_lonlat():
     x, y = f(0.0, 0.0)
     lon, lat = Transformer.from_crs("EPSG:32654", "EPSG:4326", always_xy=True).transform(x, y)
     assert lon == pytest.approx(141.481, abs=1e-7) and lat == pytest.approx(24.285, abs=1e-7)
+
+
+def test_nearest_strip_prefer_clearest():
+    o = orders(near=("2021-09-21T20:00:00Z", {}), clear=("2021-10-10T00:00:00Z", {}),
+               unk=("2021-09-21T16:00:00Z", {}))
+    clear = {"near": 0.3, "clear": 0.95}
+    assert pti.nearest_strip(T, o, clear, 32 * 24)["strip_id"] == "unk"
+    assert pti.nearest_strip(T, o, clear, 32 * 24, prefer="clearest")["strip_id"] == "clear"

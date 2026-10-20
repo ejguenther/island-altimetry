@@ -92,3 +92,7 @@ ATL03 62/5/0/0, ATL08 42/18/0/6, ATL09 61/5/1/0, ATL24 50/4/0/0, GEDI L2A 26/10/
 - **Geolocation:** on 2021-09-21/24 the tracks run about 300–400 m west of the
   visible island, consistent with uncontrolled (test-quality) Planet
   geolocation. Co-register the images before quantitative overlays.
+- **Gap-fill:** `planet_gapfill.py` ordered 16 more strips (about 2,099 km²) so
+  passes without imagery get the clearest strip within ±32 d. With those,
+  54 of 68 figures have imagery. The remaining 14 have no Planet scene within
+  ±32 d. Re-plot with `--max-dt-days 32 --pick clearest --missing-only`.

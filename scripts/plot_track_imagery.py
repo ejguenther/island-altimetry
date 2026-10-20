@@ -3,6 +3,7 @@
 
   plot_track_imagery.py --site fukutoku_okanoba [--run-id RUN]
                         [--product atl03|gedi_l2a|all] [--granule G ...] [--max-dt-days 7]
+                        [--pick nearest|clearest] [--missing-only]
 
 One figure per core-crossing pass (ATL03 granule or GEDI L2A granule). Left:
 one height-vs-along-track panel per beam that reaches the core; right: the
@@ -49,18 +50,29 @@ GEO_NOTE = ("Planet test-quality scenes, no ground control: image/lidar offsets 
 
 # ---------------------------------------------------------------- pure helpers
 
-def nearest_strip(t: pd.Timestamp, orders: dict, clear: dict, max_dt_h: float) -> dict | None:
-    """Downloaded strip closest in time to t (signed dt = image - lidar), or None."""
-    best = None
+def nearest_strip(t: pd.Timestamp, orders: dict, clear: dict, max_dt_h: float,
+                  prefer: str = "nearest") -> dict | None:
+    """Downloaded strip within max_dt_h of t (signed dt = image - lidar), or None.
+    prefer="nearest": smallest |dt|; "clearest": highest measured core clear
+    (unknown lowest), ties -> smallest |dt|."""
+    cands = []
     for name, o in orders.items():
         if o.get("download_status") != "ok":
             continue
         dt = (pd.Timestamp(o["acquired_utc"]) - t) / pd.Timedelta(hours=1)
-        if abs(dt) <= max_dt_h and (best is None or abs(dt) < abs(best["dt_hours"])):
-            best = {"order_name": name, "strip_id": o["strip_id"], "acquired_utc": o["acquired_utc"],
-                    "dt_hours": float(dt), "bundle": o["bundle"], "dir": o["dir"],
-                    "measured_clear_core": clear.get(name)}
-    return best
+        if abs(dt) <= max_dt_h:
+            c = clear.get(name)
+            cands.append({"order_name": name, "strip_id": o["strip_id"], "acquired_utc": o["acquired_utc"],
+                          "dt_hours": float(dt), "bundle": o["bundle"], "dir": o["dir"],
+                          "measured_clear_core": c})
+    if not cands:
+        return None
+    if prefer == "clearest":
+        def clear_of(c):
+            v = c["measured_clear_core"]
+            return -1.0 if v is None or pd.isna(v) else v
+        return min(cands, key=lambda c: (-clear_of(c), abs(c["dt_hours"])))
+    return min(cands, key=lambda c: abs(c["dt_hours"]))
 
 
 def gedi_along_track(df: pd.DataFrame) -> pd.Series:
@@ -196,7 +208,7 @@ def map_panel(ax, rows, pid, strip, cfg, aoi, rng, max_dt_days):
     if strip:
         clear = strip["measured_clear_core"]
         kind = "RGB TOA" if strip["bundle"] == "analytic_3b_udm2" else "SR"
-        ax.set_title(f"Planet {strip['acquired_utc']}  ({kind})\n"
+        ax.set_title(f"Planet {pd.Timestamp(strip['acquired_utc']):%Y-%m-%d %H:%M} UTC  ({kind})\n"
                      f"dt = {strip['dt_hours']:+.1f} h, core clear "
                      f"{'n/a' if clear is None or pd.isna(clear) else f'{clear:.0%}'}", fontsize=8)
         ax.set_xlabel(f"{crs} easting (m)", fontsize=7)
@@ -252,7 +264,7 @@ def figure(ctx, pid, granule, zoner, strip_for, aoi, geoid_ref, fig_dir, rng, ma
     f.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(f, dpi=130, bbox_inches="tight")
     plt.close(fig)
-    print(f"  {f.name}: {n} beam(s), " + (f"strip {strip['acquired_utc']} dt {strip['dt_hours']:+.1f} h"
+    print(f"  {f.name}: {n} beam(s), " + (f"strip {pd.Timestamp(strip['acquired_utc']):%Y-%m-%d %H:%M} dt {strip['dt_hours']:+.1f} h"
                                          if strip else "no imagery"))
     return {"figure": f"track_imagery/{f.name}", "kind": "track_imagery", "product": pid, "granule": granule,
             "pass_utc": t.isoformat(), "n_beams": n, "strip_id": strip and strip["strip_id"],
@@ -260,7 +272,7 @@ def figure(ctx, pid, granule, zoner, strip_for, aoi, geoid_ref, fig_dir, rng, ma
             "measured_clear_core": strip and strip["measured_clear_core"], "bundle": strip and strip["bundle"]}
 
 
-def run_site(site_id, run_id, products, granules, max_dt_days):
+def run_site(site_id, run_id, products, granules, max_dt_days, pick="nearest", missing_only=False):
     run_id = run_id or manifest.latest_run_id(config.resolve_site(site_id))
     ctx = acq.context(site_id, run_id)
     cfg, m = ctx["cfg"], ctx["m"]
@@ -279,13 +291,19 @@ def run_site(site_id, run_id, products, granules, max_dt_days):
     cand = A[A["product"].isin(products) & (A["n_core"] > 0)].sort_values("acq_start_utc")
     if granules:
         cand = cand[cand["granule"].isin(granules)]
+    pairs = out / "tables" / "track_imagery_pairs.csv"
+    if missing_only:
+        if not pairs.exists():
+            raise SystemExit(f"--missing-only needs {pairs}; run without it first")
+        prev = pd.read_csv(pairs)
+        cand = cand[cand["granule"].isin(prev.loc[prev["strip_id"].isna(), "granule"])]
     print(f"== {site_id} {run_id}: {len(cand)} passes, {sum(o.get('download_status') == 'ok' for o in orders.values())}"
           f" downloaded strips, window ±{max_dt_days:g} d")
     rng = np.random.default_rng(0)
     rows = []
     for _, r in cand.iterrows():
         res = figure(ctx, r["product"], r["granule"], zoner,
-                     lambda t: nearest_strip(t, orders, clear, max_dt_days * 24), aoi, geoid_ref,
+                     lambda t: nearest_strip(t, orders, clear, max_dt_days * 24, pick), aoi, geoid_ref,
                      out / "figures", rng, max_dt_days)
         if res:
             res.update(run_id=run_id, aoi_hash=m["aoi_hash"])
@@ -293,8 +311,7 @@ def run_site(site_id, run_id, products, granules, max_dt_days):
     if not rows:
         return
     df = pd.DataFrame(rows)
-    pairs = out / "tables" / "track_imagery_pairs.csv"
-    if granules and pairs.exists():
+    if (granules or missing_only) and pairs.exists():
         old = pd.read_csv(pairs)
         df = pd.concat([old[~old["granule"].isin(df["granule"])], df], ignore_index=True)
     df.sort_values("pass_utc").to_csv(pairs, index=False)
@@ -311,9 +328,13 @@ def main():
     ap.add_argument("--product", choices=["atl03", "gedi_l2a", "all"], default="all")
     ap.add_argument("--granule", action="append")
     ap.add_argument("--max-dt-days", type=float, default=7.0)
+    ap.add_argument("--pick", choices=["nearest", "clearest"], default="nearest",
+                    help="which downloaded strip within the window to show")
+    ap.add_argument("--missing-only", action="store_true",
+                    help="only re-plot passes that have no strip in track_imagery_pairs.csv")
     a = ap.parse_args()
     products = ["atl03", "gedi_l2a"] if a.product == "all" else [a.product]
-    run_site(a.site, a.run_id, products, a.granule, a.max_dt_days)
+    run_site(a.site, a.run_id, products, a.granule, a.max_dt_days, a.pick, a.missing_only)
 
 
 if __name__ == "__main__":

@@ -152,3 +152,47 @@ def test_order_script_refuses_submit_without_budget(monkeypatch, tmp_path):
     with pytest.raises(RuntimeError, match="budget"):
         order.main()
     assert not called and not (tmp_path / "orders.json").exists()
+
+
+class FakeCoverageClient:
+    """get_item_coverage answers 'activating' for the first `activating[id]` calls."""
+
+    def __init__(self, activating, clear=90):
+        self.left, self.clear, self.calls = dict(activating), clear, 0
+
+    async def get_item_coverage(self, item_type, iid, geometry, mode=None):
+        self.calls += 1
+        if self.left.get(iid, 0) > 0:
+            self.left[iid] -= 1
+            return {"status": "activating"}
+        return {"status": "complete", "clear_percent": self.clear}
+
+
+def test_estimate_coverage_polls_activating_and_reports_incomplete(tmp_path):
+    import asyncio
+    import json
+    cache = tmp_path / "cov.json"
+    client = FakeCoverageClient({"a": 0, "b": 2, "c": 99})
+    out = asyncio.run(pim.estimate_coverage(client, "PSScene", ["a", "b", "c"], OUTER, cache,
+                                            poll_s=0, max_rounds=4))
+    assert out["a"]["aoi_clear"] == 0.9 and out["b"]["aoi_clear"] == 0.9
+    assert out["c"]["coverage_status"] == "incomplete"
+    assert pim.coverage_counts(out) == {"complete": 2, "incomplete": 1, "failed": 0}
+    cached = json.loads(cache.read_text())
+    assert len(cached) == 2 and not any(k.endswith(":c") for k in cached)
+    # cached items are not re-requested
+    client2 = FakeCoverageClient({})
+    asyncio.run(pim.estimate_coverage(client2, "PSScene", ["a", "b"], OUTER, cache, poll_s=0))
+    assert client2.calls == 0
+
+
+def test_gapfill_choice_prefers_clear_then_near_with_footprint_fallback():
+    strips = pd.DataFrame([strip("near_cloudy", 24, clear=0.3), strip("far_clear", -500, clear=0.95),
+                           strip("partial_clearest", 5, clear=1.0, footprint=0.5), strip("unknown", 2, clear=None)])
+    s, dt_h = pim.gapfill_choice(T0, strips, 768, 0.95)
+    assert s["strip_id"] == "far_clear" and dt_h == -500
+    s, _ = pim.gapfill_choice(T0, strips[strips["strip_id"].isin(["partial_clearest"])], 768, 0.95)
+    assert s["strip_id"] == "partial_clearest"                     # footprint fallback
+    assert pim.gapfill_choice(T0, strips, 1, 0.95) is None         # outside window
+    s, _ = pim.gapfill_choice(T0, strips[strips["strip_id"].isin(["near_cloudy", "unknown"])], 768, 0.95)
+    assert s["strip_id"] == "near_cloudy"                          # unknown clear ranks lowest

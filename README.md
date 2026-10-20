@@ -77,6 +77,10 @@ with the beams drawn on the image in matching colours.
 $PY scripts/plot_track_imagery.py --site fukutoku_okanoba                  # all passes
 $PY scripts/plot_track_imagery.py --site fukutoku_okanoba --product gedi_l2a --max-dt-days 14
 $PY scripts/plot_track_imagery.py --site fukutoku_okanoba --granule ATL03_20210921145752_13741207_007_01
+# gap-fill: clearest strip within ±32 d for passes without imagery, then re-plot them
+$PY scripts/planet_gapfill.py --site fukutoku_okanoba --budget-km2 3000            # dry run
+$PY scripts/planet_gapfill.py --site fukutoku_okanoba --budget-km2 3000 --submit --download
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba --max-dt-days 32 --pick clearest --missing-only
 ```
 Figures go to `outputs/<site>/<run>/figures/track_imagery/` and the pairings to
 `tables/track_imagery_pairs.csv`.

@@ -9,4 +9,6 @@ pyproj
 matplotlib
 pyyaml
 requests
+planet>=3.6,<4
+rasterio
 pytest

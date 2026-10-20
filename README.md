@@ -53,10 +53,26 @@ $PY scripts/build_report.py    --site fukutoku_okanoba # M7 feasibility.md
 $PY -m pytest                                          # focused validation tests
 ```
 
+### M8: coincident PlanetScope imagery (requires Planet login)
+Run `.venv/bin/planet auth login` once, or export `PL_API_KEY`. Search is metadata
+only and uses no quota. Orders draw down quota, so they are a dry run unless you
+pass `--submit` together with a km² budget. Criteria live in
+`configs/islands.yaml` under `defaults.imagery.planet`; see `docs/m8/NOTES.md`.
+
+```bash
+$PY scripts/check_environment.py --planet-only         # SDK + auth check
+$PY scripts/planet_search.py --site fukutoku_okanoba   # M8a targets, candidates, matches, order plan
+$PY scripts/planet_order.py  --site fukutoku_okanoba --max-tier d1 --budget-km2 3000            # dry run
+$PY scripts/planet_order.py  --site fukutoku_okanoba --max-tier d1 --budget-km2 3000 --submit   # M8b
+$PY scripts/planet_order.py  --site fukutoku_okanoba --download                                  # wait + download
+$PY scripts/planet_qc.py     --site fukutoku_okanoba   # M8c measured UDM2 clear + quicklooks
+```
+
 Layout: `data/<site>/aoi/<aoi_hash>/`, `data/<site>/inventory/<run_id>/`,
 `data/<site>/subsets/<product>/<release>/aoi_<hash>/req_<hash>/<granule>.{parquet,json}`
 (immutable raw chunks + sidecars), `data/<site>/analysis/<run_id>/`, and
 `outputs/<site>/<run_id>/{run_manifest.json, feasibility.md, tables/, figures/, plot_index.csv}`.
+Planet imagery: `data/<site>/imagery/planet/{<run_id>/catalog/, coverage_cache.json, orders.json, scenes/<YYYYMMDD>_<strip>/}`.
 `data/` and `outputs/` are not committed.
 
 ### Rerun, resume, update

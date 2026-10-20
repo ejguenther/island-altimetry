@@ -94,6 +94,9 @@ def validate(cfg: dict) -> None:
         parse_utc(e["start"])
     if cfg["workers"] < 1 or cfg["retries"] < 0:
         raise ConfigError("workers >= 1 and retries >= 0 required")
+    if "planet" in cfg.get("imagery", {}):
+        from .planet_imagery import validate_imagery
+        validate_imagery(cfg["imagery"]["planet"])
 
 
 def config_hash(cfg: dict) -> str:

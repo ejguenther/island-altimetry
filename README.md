@@ -68,6 +68,19 @@ $PY scripts/planet_order.py  --site fukutoku_okanoba --download                 
 $PY scripts/planet_qc.py     --site fukutoku_okanoba   # M8c measured UDM2 clear + quicklooks
 ```
 
+### M9: lidar profiles with coincident imagery (no network)
+One figure per core-crossing ATL03 or GEDI L2A pass. Each beam's height profile
+sits beside the nearest downloaded Planet strip (within `--max-dt-days`, default 7),
+with the beams drawn on the image in matching colours.
+
+```bash
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba                  # all passes
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba --product gedi_l2a --max-dt-days 14
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba --granule ATL03_20210921145752_13741207_007_01
+```
+Figures go to `outputs/<site>/<run>/figures/track_imagery/` and the pairings to
+`tables/track_imagery_pairs.csv`.
+
 Layout: `data/<site>/aoi/<aoi_hash>/`, `data/<site>/inventory/<run_id>/`,
 `data/<site>/subsets/<product>/<release>/aoi_<hash>/req_<hash>/<granule>.{parquet,json}`
 (immutable raw chunks + sidecars), `data/<site>/analysis/<run_id>/`, and

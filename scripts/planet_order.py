@@ -7,6 +7,7 @@ selection and its estimated clipped area.
   planet_order.py --site X --max-tier d1 --budget-km2 2000       # dry run, narrowed
   planet_order.py --site X --max-tier d1 --budget-km2 2000 --submit
   planet_order.py --site X --download                            # wait + download placed orders
+  planet_order.py --coastal --strip 5730968 [--submit] [--download]   # coastal experiment, one strip
 
 One order per strip (name <site>_<YYYYMMDD>_<strip_id>), clipped to the
 configured AOI, SR bundles harmonized to Sentinel-2. Placed orders are recorded
@@ -114,11 +115,65 @@ async def download(P: dict, names: list[str] | None, retries: int) -> None:
         await asyncio.gather(*(one(k, v) for k, v in todo.items()))
 
 
+def coastal_crop(cfg: dict, D: dict):
+    """Order clip / experiment crop: the audited lidar footprint grown by
+    crop.buffer_m (context for feature windows and registration checks).
+    Frozen on first use; an existing crop.geojson is never rewritten."""
+    from island_altimetry.coastal.grid import read_geojson, write_geojson
+    f = D["work"] / "crop.geojson"
+    if not f.exists():
+        crs = cfg["crop"]["crs"]
+        fp = read_geojson(D["work"] / "audit" / "footprint.geojson", crs)
+        g = fp.buffer(cfg["crop"]["buffer_m"], join_style="mitre").simplify(10)
+        write_geojson(g, crs, f, {"source": "audit footprint", "buffer_m": cfg["crop"]["buffer_m"],
+                                  "area_km2": round(g.area / 1e6, 3), "frozen_utc": now()})
+        print(f"froze crop {f} ({g.area / 1e6:.1f} km2)")
+    return shape(json.loads(f.read_text())["features"][0]["geometry"])
+
+
+def coastal_main(a) -> None:
+    """Coastal experiment: order one explicitly chosen strip from
+    planet_search.py --coastal output, clipped to the frozen crop."""
+    import shapely
+    from island_altimetry.coastal import config as ccfg
+    cfg = ccfg.load(a.coastal)
+    pc, D, P = cfg["imagery"]["planet"], ccfg.dirs(cfg), ccfg.planet_paths(cfg)
+    clip = coastal_crop(cfg, D)
+    if a.strip:
+        cand = pd.read_csv(P["tables"] / "planet_candidates.csv", dtype={"strip_id": str})
+        r = cand[cand["strip_id"] == a.strip]
+        if r.empty:
+            raise SystemExit(f"strip {a.strip} not in {P['tables'] / 'planet_candidates.csv'}")
+        r = r.iloc[0]
+        items = pd.read_csv(P["tables"] / "planet_items.csv", dtype={"strip_id": str})
+        raw = {i["id"]: i for f in P["catalog"].glob("*.json") for i in json.loads(f.read_text())["items"]}
+        foot = shapely.union_all([shape(raw[i]["geometry"]) for i in r["item_ids"].split(";")])
+        proj = pim.Projector(clip.centroid.x, clip.centroid.y)
+        est = pim.area_km2(foot.intersection(clip), proj)
+        sel = pd.DataFrame([{"order_name": f"{cfg['site_id']}_{pd.Timestamp(r['acquired']):%Y%m%d}_{a.strip}",
+                             "strip_id": a.strip, "acquired_utc": r["acquired"], "item_ids": r["item_ids"],
+                             "n_items": int(r["n_items"]), "bundle": r["bundle"], "targets": cfg["experiment"],
+                             "aoi_clear": r["aoi_clear"], "est_km2": round(est, 1)}])
+        budget = a.budget_km2 if a.budget_km2 is not None else pc.get("order_budget_km2")
+        print(sel.drop(columns="item_ids").to_string(index=False))
+        print(f"items: {r['item_ids']}; clipped area ~{est:.1f} km2 (budget {budget} km2)")
+        pim.check_budget(sel, budget)
+        if a.submit:
+            asyncio.run(submit(sel, clip, pc, P))
+        elif not a.download:
+            print("dry run: add --submit to place this order")
+    if a.download:
+        asyncio.run(download(P, None, cfg["retries"]))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--site")
     g.add_argument("--all", action="store_true")
+    g.add_argument("--coastal", metavar="CONFIG", nargs="?", const="configs/coastal_experiment.yaml",
+                   help="coastal experiment: order --strip (from planet_search.py --coastal), clipped to the crop")
+    ap.add_argument("--strip", help="coastal mode: strip_id to order")
     ap.add_argument("--run-id")
     ap.add_argument("--max-tier", help="only strips whose best match is this tier or closer (e.g. d1)")
     ap.add_argument("--usable-only", action="store_true", help="only strips matched to a usable-core lidar pass")
@@ -127,6 +182,8 @@ def main():
     ap.add_argument("--submit", action="store_true", help="place orders (uses quota)")
     ap.add_argument("--download", action="store_true", help="wait for and download recorded orders")
     a = ap.parse_args()
+    if a.coastal:
+        return coastal_main(a)
     for site in (config.site_ids() if a.all else [a.site]):
         cfg = config.resolve_site(site)
         pc = cfg["imagery"]["planet"]

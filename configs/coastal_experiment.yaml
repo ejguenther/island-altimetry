@@ -1,0 +1,85 @@
+# Coastal topobathy elevation feasibility experiment (plan/coastal_elevation_feasibility_plan.md).
+# One AOI: Florida Panhandle, 2022 USACE NCMP topobathy lidar (NOAA Digital Coast 10314),
+# east strip only (20220628_* tiles). Shared keys (data_root, output_root, retries,
+# imagery.planet) come from configs/islands.yaml defaults; values here override them.
+
+site_id: florida_panhandle
+experiment: coastal_rf
+
+sources:
+  dtm_dir: /home/ejg2736/network_drives/walker/exports/nfs_share/Data/OpenData/Topobathy/dem/florida_panhandle/dtm_2022_1m
+  dsm_dir: /home/ejg2736/network_drives/walker/exports/nfs_share/Data/OpenData/Topobathy/dem/florida_panhandle/dsm_2022_1m
+  laz_dir: /home/ejg2736/network_drives/walker/exports/nfs_share/Data/OpenData/Topobathy/florida_panhandle/tiles_2022
+  tile_glob: "20220628_NCMP_FL_*"      # east strip, single flight day
+  survey: "2022 USACE NCMP Topobathy Lidar: Florida Gulf Coast (NOAA Digital Coast 10314)"
+  vertical_datum: NAVD88 (EPSG:5703), metres   # confirmed from LAZ compound WKT in audit
+  dtm_nodata: -9999
+  support_classes: [2, 29]           # NCMP: 2 = ground, 29 = submerged topography (bathymetry)
+
+audit:
+  footprint_cell_m: 30               # coarse support grid for the strip footprint polygon
+  footprint_min_returns: 5           # per 30 m cell to count as surveyed
+
+crop:
+  crs: EPSG:6345                    # DTM CRS (metres) for buffering
+  buffer_m: 300                    # crop = lidar footprint + this; > feature radius, room for QA
+
+imagery:
+  planet:
+    search_from: "2022-06-14T00:00:00Z"   # +-14 d around the 2022-06-28 survey; widen only if needed
+    search_to: "2022-07-12T00:00:00Z"
+    scene_cloud_max: 0.3
+    match_aoi: footprint             # coverage/clear judged over the strip footprint
+    clip_aoi: crop                   # orders clipped to the frozen crop polygon
+    bundles: [analytic_8b_sr_udm2, analytic_sr_udm2]   # SR only: no visual/TOA products
+    order_budget_km2: 150
+    strip_id: "5730968"               # chosen 2022-10-21 (user): 2022-06-22 15:27 UTC, 99% clear, -5.9 d
+
+reference:
+  # target "point_mean": mean z of class 2/29 returns per 3 m cell (user decision 2026-10-21:
+  # dtm_2022_1m is clamped near -3.4 m in deeper water; the DTM area-weighted mean is kept as a QA layer).
+  # target "dtm_mean": the plan's area-weighted DTM mean.
+  target: point_mean
+  min_valid_fraction: 0.90           # dtm_mean only: of the full destination cell area
+  min_returns: 4                     # class 2/29 returns per 3 m cell; fewer = unsupported ("filled" in the DTM)
+  window_px: 1024                    # destination window edge for aggregation
+
+masks:
+  # rule "nir": thresholds derived from the image NIR histogram (water mode edge, Otsu) - see
+  # masks.nir_thresholds. Chosen after the NDWI rule left Gulf water ambiguous (NIR ~ green there).
+  rule: nir
+  water_ndwi_min: -0.15              # water must also have NDWI above this (rejects shadowed vegetation)
+  ndwi_water_min: 0.0                # rule "ndwi" only: McFeeters NDWI > this -> water
+  ndwi_land_max: -0.1                # rule "ndwi" only: < this -> land; between -> ambiguous
+  shoreline_buffer_px: 2             # ambiguous band grown by this many pixels
+
+splits:
+  seed: 20221028
+  n_blocks: 10                       # along-strip blocks
+  fractions: {train: 0.6, val: 0.2, test: 0.2}
+  buffer_m: 150                      # excluded guard between partitions (> 5x5 window radius 7.5 m)
+
+labels:
+  dense_cap: 200000
+  smoke_cap: 20000
+  seed: 7
+  tracks:
+    azimuth_deg: [0, 10, -10]        # predeclared orientation variants (degrees from grid north)
+    counts: [3, 6, 12]               # centerlines across the crop
+    offset_frac: [0.0, 0.33, 0.67]   # predeclared translations, fraction of the spacing
+
+interp:
+  k: 12
+  power: 2
+  max_radius_m: 2000
+
+rf:
+  n_estimators: 200
+  max_depth: 20
+  min_samples_leaf: 5
+  n_jobs: 4
+  seed: 42
+  min_labels_per_domain: 200
+
+resources:
+  memory_target_gb: 20

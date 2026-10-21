@@ -5,6 +5,7 @@ certifi==2026.10.18
 cffi==2.1.1
 charset-normalizer==3.5.2
 click==8.5.0
+cloudpickle==3.1.2
 contourpy==1.4.0
 cryptography==50.0.2
 cycler==0.12.1
@@ -16,10 +17,14 @@ httpcore==1.0.9
 httpx==0.28.1
 idna==3.20
 iniconfig==2.3.1
+joblib==1.6.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 kiwisolver==1.5.1
+laspy==2.7.0
+lazrs==0.8.2
 matplotlib==3.11.2
+narwhals==2.27.1
 numpy==2.5.4
 packaging==26.3
 pandas==3.0.6
@@ -43,11 +48,14 @@ rasterio==1.5.2
 referencing==0.37.0
 requests==2.34.2
 rpds-py==2026.9.1
+scikit-learn==1.9.1
+scipy==1.18.1
 setuptools==84.2.0
 shapely==2.2.0
 six==1.17.0
 sliderule==5.6.3
 StrEnum==0.4.15
+threadpoolctl==3.7.0
 tqdm==4.70.1
 typing_extensions==4.16.0
 urllib3==2.8.0

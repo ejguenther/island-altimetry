@@ -88,6 +88,29 @@ $PY scripts/plot_track_imagery.py --site fukutoku_okanoba --max-dt-days 32 --pic
 Figures go to `outputs/<site>/<run>/figures/track_imagery/` and the pairings to
 `tables/track_imagery_pairs.csv`.
 
+### Coastal elevation experiment (PlanetScope + RF vs simulated tracks)
+A one-AOI reconstruction test (`plan/coastal_elevation_feasibility_plan.md`). The AOI is the
+Florida Panhandle 2022 NCMP topobathy lidar, east strip, configured in `configs/coastal_experiment.yaml`.
+The target is the mean elevation of class 2/29 lidar returns per 3 m Planet cell (NAVD88), because the
+1 m DTM is clamped in deeper water. Land/water routing uses imagery NIR only. Spatial blocks with
+150 m guards are frozen before labelling. Methods: B0 constant, B1 IDW from track labels, and
+R1/R2/R3 random forests on dense or track labels.
+```bash
+$PY scripts/audit_coastal_inputs.py                    # tile/LAZ audit, datum, footprint
+$PY scripts/planet_search.py --coastal                 # strips in the configured window (no quota)
+$PY scripts/planet_order.py --coastal --strip 5730968  # dry run; add --submit, then --download
+$PY scripts/prepare_coastal_reference.py               # exact Planet grid, target, support, masks, QA
+$PY scripts/make_spatial_splits.py                     # frozen split + maps (before any label)
+$PY scripts/simulate_label_tracks.py                   # dense + 9 track layouts
+$PY scripts/run_interpolation.py                       # B0/B1 (IDW chosen on validation)
+$PY scripts/train_coastal_rf.py                        # R1/R2/R3 (add --smoke for a quick check)
+$PY scripts/evaluate_coastal_models.py --partition val
+$PY scripts/evaluate_coastal_models.py --partition test   # once, after choices are frozen
+```
+Cached inputs go to `data/florida_panhandle/{coastal,imagery/planet}/`. Results go to
+`outputs/florida_panhandle/coastal_rf/` (`feasibility_report.md`, `tables/`, `figures/`). The raw DTM, DSM
+and LAZ are only read. After the download, a rerun takes about 15 minutes with a peak RSS of about 5 GB.
+
 Layout: `data/<site>/aoi/<aoi_hash>/`, `data/<site>/inventory/<run_id>/`,
 `data/<site>/subsets/<product>/<release>/aoi_<hash>/req_<hash>/<granule>.{parquet,json}`
 (immutable raw chunks + sidecars), `data/<site>/analysis/<run_id>/`, and

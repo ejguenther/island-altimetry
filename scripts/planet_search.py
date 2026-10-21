@@ -93,14 +93,102 @@ async def search(ctx: dict, targets: pd.DataFrame, refresh: bool) -> tuple[pd.Da
     return items, strips
 
 
+async def search_window(cfg: dict, aoi, ref_time: pd.Timestamp, refresh: bool) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Coastal mode: every strip in an explicit date window over a supplied
+    polygon, with UDM2 coverage over that polygon and |dt| to the reference
+    survey time. No lidar targets are involved."""
+    from planet import Session
+    from island_altimetry.coastal.config import planet_paths
+    pc, P = cfg["imagery"]["planet"], planet_paths(cfg)
+    t0, t1 = config.parse_utc(pc["search_from"]), config.parse_utc(pc["search_to"])
+    c = aoi.centroid
+    proj = pim.Projector(c.x, c.y)
+    async with Session() as sess:
+        client = sess.client("data")
+        print(f"searching {pc['item_type']} {t0:%Y-%m-%d}..{t1:%Y-%m-%d} (scene cloud <= {pc['scene_cloud_max']})")
+        raw = await pim.fetch_catalog(client, pc["item_type"], aoi, t0, t1, pc["scene_cloud_max"], P["catalog"],
+                                      refresh, pc.get("standard_quality_only", False))
+        items = pd.DataFrame([pim.item_row(i) for i in raw]).drop_duplicates("item_id")
+        if items.empty:
+            return items, pd.DataFrame()
+        items["item_footprint"] = [pim.footprint_fraction(g, aoi, proj) for g in items["geometry"]]
+        items = items[items["item_footprint"] > 0]
+        print(f"{len(items)} items overlap the AOI -> coverage estimates")
+        cov = await pim.estimate_coverage(client, pc["item_type"], list(items["item_id"]), aoi, P["coverage"],
+                                          workers=pc.get("coverage_workers", 4), retries=cfg["retries"],
+                                          backoff_s=cfg["retry_backoff_s"], mode=pc.get("coverage_mode", "UDM2"))
+        thumbs = {i["id"]: i["_links"].get("thumbnail") for i in raw if i["id"] in set(items["item_id"])}
+        await fetch_thumbs(sess, thumbs, P["thumbs"])
+    counts = pim.coverage_counts(cov)
+    print(f"coverage: {counts}")
+    cdf = pd.DataFrame.from_dict(cov, orient="index").rename_axis("item_id").reset_index()
+    items = items.merge(cdf, on="item_id", how="left")
+    strips = pim.group_strips(items, aoi, proj)
+    if strips.empty:
+        return items, strips
+    perms = items.set_index("item_id")["permissions"].to_dict()
+    geoms = items.groupby("strip_id")["geometry"].agg(lambda g: shapely.union_all(list(g)))
+    strips["dt_hours"] = (strips["acquired"] - ref_time) / pd.Timedelta(hours=1)
+    strips["sun_elevation"] = items.groupby("strip_id")["sun_elevation"].mean().reindex(strips["strip_id"]).to_numpy()
+    strips["view_angle_max"] = items.groupby("strip_id")["view_angle"].max().reindex(strips["strip_id"]).to_numpy()
+    strips["bundle"] = [pim.choose_bundle([set(str(perms.get(i, "")).split(";")) for i in s.split(";")], pc["bundles"])
+                        for s in strips["item_ids"]]
+    strips["clip_km2"] = [pim.area_km2(geoms[s].intersection(aoi), proj) for s in strips["strip_id"]]
+    strips.attrs["coverage_counts"] = counts
+    return items, strips
+
+
+async def fetch_thumbs(sess, urls: dict, dest) -> None:
+    """Item thumbnails (metadata only, no quota) for visual screening of glint,
+    haze and water clarity. Failures are reported, not fatal."""
+    dest.mkdir(parents=True, exist_ok=True)
+    for iid, url in urls.items():
+        f = dest / f"{iid}.png"
+        if f.exists() or not url:
+            continue
+        try:
+            r = await sess.request("GET", url, params={"width": 1024})
+            f.write_bytes(r._http_response.content)
+        except Exception as e:  # noqa: BLE001
+            print(f"  thumbnail {iid}: {type(e).__name__}: {e}")
+
+
+def coastal_main(cfg_path: str, refresh: bool) -> None:
+    from island_altimetry.coastal import config as ccfg
+    from island_altimetry.coastal.grid import read_geojson
+    cfg = ccfg.load(cfg_path)
+    D, P = ccfg.dirs(cfg), ccfg.planet_paths(cfg)
+    P["tables"].mkdir(parents=True, exist_ok=True)
+    src = json.loads((D["out"] / "source_manifest.json").read_text())
+    a0, a1 = (pd.Timestamp(t) for t in src["findings"]["acquisition_utc"])
+    ref_time = a0 + (a1 - a0) / 2
+    aoi = read_geojson(D["work"] / "audit" / "footprint.geojson")
+    items, strips = asyncio.run(search_window(cfg, aoi, ref_time, refresh))
+    if strips.empty:
+        raise SystemExit("no PlanetScope strips overlap the footprint in the search window")
+    strips = strips.assign(abs_dt_days=strips["dt_hours"].abs() / 24).sort_values(
+        ["aoi_footprint", "aoi_clear", "abs_dt_days"], ascending=[False, False, True])
+    items.drop(columns="geometry").to_csv(P["tables"] / "planet_items.csv", index=False)
+    strips.to_csv(P["tables"] / "planet_candidates.csv", index=False)
+    cols = ["strip_id", "acquired", "abs_dt_days", "instrument", "n_items", "aoi_footprint", "aoi_clear",
+            "aoi_haze", "sun_elevation", "view_angle_max", "quality_category", "bundle", "clip_km2"]
+    with pd.option_context("display.width", 200, "display.float_format", "{:.3f}".format):
+        print(strips[cols].head(25).to_string(index=False))
+    print(f"reference survey time {ref_time}; tables in {P['tables']}; thumbnails in {P['thumbs']}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--site")
     g.add_argument("--all", action="store_true")
+    g.add_argument("--coastal", metavar="CONFIG", nargs="?", const="configs/coastal_experiment.yaml",
+                   help="coastal experiment: explicit date window over the audited lidar footprint")
     ap.add_argument("--run-id")
     ap.add_argument("--refresh", action="store_true", help="re-query cached search windows")
     a = ap.parse_args()
+    if a.coastal:
+        return coastal_main(a.coastal, a.refresh)
     for site in (config.site_ids() if a.all else [a.site]):
         cfg = config.resolve_site(site)
         run_id = a.run_id or manifest.latest_run_id(cfg)

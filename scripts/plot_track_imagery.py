@@ -75,6 +75,18 @@ def nearest_strip(t: pd.Timestamp, orders: dict, clear: dict, max_dt_h: float,
     return min(cands, key=lambda c: abs(c["dt_hours"]))
 
 
+def pick_tiered(t: pd.Timestamp, orders: dict, clear: dict, tier_days=(7, 32)) -> dict | None:
+    """Clearest downloaded strip within the first tier window that has one
+    (e.g. +-7 d, then +-32 d); failing all tiers, the temporally closest
+    downloaded strip at any distance. The chosen rule is recorded in "rule"."""
+    for d in tier_days:
+        s = nearest_strip(t, orders, clear, d * 24, prefer="clearest")
+        if s:
+            return s | {"rule": f"clearest within ±{d:g} d"}
+    s = nearest_strip(t, orders, clear, float("inf"))
+    return s | {"rule": "nearest available"} if s else None
+
+
 def gedi_along_track(df: pd.DataFrame) -> pd.Series:
     """Along-track distance (m) per footprint: per beam, local x/y projected on
     the first->last footprint direction (time order), zero at closest approach
@@ -208,9 +220,13 @@ def map_panel(ax, rows, pid, strip, cfg, aoi, rng, max_dt_days):
     if strip:
         clear = strip["measured_clear_core"]
         kind = "RGB TOA" if strip["bundle"] == "analytic_3b_udm2" else "SR"
+        dt_txt = (f"{strip['dt_hours'] / 24:+.1f} d" if abs(strip["dt_hours"]) >= 72
+                  else f"{strip['dt_hours']:+.1f} h")
+        rule = f"\n[{strip['rule']}]" if strip.get("rule") else ""
         ax.set_title(f"Planet {pd.Timestamp(strip['acquired_utc']):%Y-%m-%d %H:%M} UTC  ({kind})\n"
-                     f"dt = {strip['dt_hours']:+.1f} h, core clear "
-                     f"{'n/a' if clear is None or pd.isna(clear) else f'{clear:.0%}'}", fontsize=8)
+                     f"dt = {dt_txt}, core clear "
+                     f"{'n/a' if clear is None or pd.isna(clear) else f'{clear:.0%}'}{rule}",
+                     fontsize=8, color="#b30000" if strip.get("rule") == "nearest available" else "black")
         ax.set_xlabel(f"{crs} easting (m)", fontsize=7)
     else:
         ax.set_title(f"no downloaded Planet strip within ±{max_dt_days:g} d", fontsize=8)
@@ -219,7 +235,7 @@ def map_panel(ax, rows, pid, strip, cfg, aoi, rng, max_dt_days):
 
 # ---------------------------------------------------------------- figure
 
-def figure(ctx, pid, granule, zoner, strip_for, aoi, geoid_ref, fig_dir, rng, max_dt_days):
+def figure(ctx, pid, granule, zoner, strip_for, aoi, geoid_ref, fig_dir, rng, max_dt_days, pick_label=""):
     v, st = load(ctx, pid, granule, zoner)
     if v is None or v.empty:
         print(f"  {granule}: {st}, skipped")
@@ -269,10 +285,12 @@ def figure(ctx, pid, granule, zoner, strip_for, aoi, geoid_ref, fig_dir, rng, ma
     return {"figure": f"track_imagery/{f.name}", "kind": "track_imagery", "product": pid, "granule": granule,
             "pass_utc": t.isoformat(), "n_beams": n, "strip_id": strip and strip["strip_id"],
             "strip_acquired_utc": strip and strip["acquired_utc"], "dt_hours": strip and round(strip["dt_hours"], 2),
-            "measured_clear_core": strip and strip["measured_clear_core"], "bundle": strip and strip["bundle"]}
+            "measured_clear_core": strip and strip["measured_clear_core"], "bundle": strip and strip["bundle"],
+            "pick_rule": strip and strip.get("rule", f"{pick_label}")}
 
 
-def run_site(site_id, run_id, products, granules, max_dt_days, pick="nearest", missing_only=False):
+def run_site(site_id, run_id, products, granules, max_dt_days, pick="tiered", missing_only=False,
+             tier_days=(7, 32)):
     run_id = run_id or manifest.latest_run_id(config.resolve_site(site_id))
     ctx = acq.context(site_id, run_id)
     cfg, m = ctx["cfg"], ctx["m"]
@@ -300,11 +318,19 @@ def run_site(site_id, run_id, products, granules, max_dt_days, pick="nearest", m
     print(f"== {site_id} {run_id}: {len(cand)} passes, {sum(o.get('download_status') == 'ok' for o in orders.values())}"
           f" downloaded strips, window ±{max_dt_days:g} d")
     rng = np.random.default_rng(0)
+    if pick == "tiered":
+        def strip_for(t):
+            return pick_tiered(t, orders, clear, tier_days)
+        label = "tiered " + "/".join(f"±{d:g} d" for d in tier_days) + ", then nearest available"
+    else:
+        def strip_for(t):
+            return nearest_strip(t, orders, clear, max_dt_days * 24, pick)
+        label = f"{pick} within ±{max_dt_days:g} d"
+    print(f"   image rule: {label}")
     rows = []
     for _, r in cand.iterrows():
-        res = figure(ctx, r["product"], r["granule"], zoner,
-                     lambda t: nearest_strip(t, orders, clear, max_dt_days * 24, pick), aoi, geoid_ref,
-                     out / "figures", rng, max_dt_days)
+        res = figure(ctx, r["product"], r["granule"], zoner, strip_for, aoi, geoid_ref,
+                     out / "figures", rng, max_dt_days, f"{pick} within ±{max_dt_days:g} d")
         if res:
             res.update(run_id=run_id, aoi_hash=m["aoi_hash"])
             rows.append(res)
@@ -328,13 +354,15 @@ def main():
     ap.add_argument("--product", choices=["atl03", "gedi_l2a", "all"], default="all")
     ap.add_argument("--granule", action="append")
     ap.add_argument("--max-dt-days", type=float, default=7.0)
-    ap.add_argument("--pick", choices=["nearest", "clearest"], default="nearest",
-                    help="which downloaded strip within the window to show")
+    ap.add_argument("--pick", choices=["tiered", "nearest", "clearest"], default="tiered",
+                    help="tiered (default): clearest within each --tier-days window in turn, else the "
+                         "temporally closest downloaded strip; nearest/clearest: within --max-dt-days only")
+    ap.add_argument("--tier-days", type=float, nargs="+", default=[7, 32])
     ap.add_argument("--missing-only", action="store_true",
                     help="only re-plot passes that have no strip in track_imagery_pairs.csv")
     a = ap.parse_args()
     products = ["atl03", "gedi_l2a"] if a.product == "all" else [a.product]
-    run_site(a.site, a.run_id, products, a.granule, a.max_dt_days, a.pick, a.missing_only)
+    run_site(a.site, a.run_id, products, a.granule, a.max_dt_days, a.pick, a.missing_only, a.tier_days)
 
 
 if __name__ == "__main__":

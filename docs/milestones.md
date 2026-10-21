@@ -96,3 +96,8 @@ ATL03 62/5/0/0, ATL08 42/18/0/6, ATL09 61/5/1/0, ATL24 50/4/0/0, GEDI L2A 26/10/
   passes without imagery get the clearest strip within ±32 d. With those,
   54 of 68 figures have imagery. The remaining 14 have no Planet scene within
   ±32 d. Re-plot with `--max-dt-days 32 --pick clearest --missing-only`.
+- **All 68 redrawn** with the default tiered rule (clearest within ±7 d, else
+  clearest within ±32 d, else nearest available). Breakdown: 36 / 18 / 14. All
+  14 nearest-available fallbacks are pre-eruption passes (2018 to Jan 2021),
+  53–155 d from their image, and are marked red on the map.
+  The `pick_rule` column is in `track_imagery_pairs.csv`.

@@ -60,3 +60,18 @@ def test_nearest_strip_prefer_clearest():
     clear = {"near": 0.3, "clear": 0.95}
     assert pti.nearest_strip(T, o, clear, 32 * 24)["strip_id"] == "unk"
     assert pti.nearest_strip(T, o, clear, 32 * 24, prefer="clearest")["strip_id"] == "clear"
+
+
+def test_pick_tiered_windows_then_nearest_available():
+    o = orders(d5_cloudy=("2021-09-26T00:00:00Z", {}), d20_clear=("2021-10-11T00:00:00Z", {}),
+               d90=("2021-12-20T00:00:00Z", {}))
+    clear = {"d5_cloudy": 0.2, "d20_clear": 0.99, "d90": 1.0}
+    s = pti.pick_tiered(T, o, clear)
+    assert s["strip_id"] == "d5_cloudy" and s["rule"] == "clearest within ±7 d"
+    del o["d5_cloudy"]
+    s = pti.pick_tiered(T, o, clear)
+    assert s["strip_id"] == "d20_clear" and s["rule"] == "clearest within ±32 d"
+    del o["d20_clear"]
+    s = pti.pick_tiered(T, o, clear)
+    assert s["strip_id"] == "d90" and s["rule"] == "nearest available"
+    assert pti.pick_tiered(T, {}, {}) is None

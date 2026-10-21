@@ -28,7 +28,6 @@ from .aoi import aeqd_crs
 from .config import ConfigError, fmt_utc, parse_utc
 
 TARGET_PRODUCTS = ("atl03", "gedi_l2a")
-COVERAGE_WINDOW_H = 720   # coverage is only estimated for items within the widest tier
 
 # (bundle, permission that must be present on every item), best first.
 BUNDLE_PERMISSION = {
@@ -51,8 +50,6 @@ def validate_imagery(pc: dict) -> None:
     hours = list(tiers.values())
     if not hours or hours != sorted(hours) or hours[0] <= 0:
         raise ConfigError("imagery.planet.tiers_hours must be positive and increasing")
-    if hours[-1] > COVERAGE_WINDOW_H:
-        raise ConfigError(f"widest tier exceeds coverage window ({COVERAGE_WINDOW_H} h)")
     if not isinstance(pc.get("standard_quality_only", False), bool):
         raise ConfigError("imagery.planet.standard_quality_only must be true or false")
     if pc.get("coverage_mode", "UDM2") not in ("UDM2", "estimate"):
@@ -227,19 +224,24 @@ def coverage_row(resp: dict) -> dict:
 
 async def estimate_coverage(client, item_type: str, item_ids: list[str], aoi, cache_file: Path,
                             workers: int = 4, retries: int = 3, backoff_s: float = 20,
-                            mode: str = "UDM2") -> dict:
-    """Per-AOI clear coverage, cached by AOI + mode + item id. Only finished
-    ('complete') results are cached; failures are returned but not stored.
+                            mode: str = "UDM2", poll_s: float = 60, max_rounds: int = 15) -> dict:
+    """Per-AOI clear coverage, cached by AOI + mode + item id.
 
     mode="UDM2" computes from the full-resolution UDM2 and matched downloaded
-    masks to within a few percent; mode="estimate" is faster but was far too
-    optimistic under haze (e.g. 91% vs 0% measured clear), so it is not the default."""
+    masks to within a few percent; mode="estimate" was far too optimistic under
+    haze (e.g. 91% vs 0% measured clear), so it is not the default.
+
+    UDM2 mode first answers {"status": "activating"} while Planet prepares the
+    mask; those items are re-requested in rounds every `poll_s` seconds, up to
+    `max_rounds`. Only 'complete' results are cached. Items still unresolved
+    come back as coverage_status="incomplete", errors as "failed"; see
+    coverage_counts() - neither may be mistaken for a cloud-free or cloudy scene."""
     cache = json.loads(cache_file.read_text()) if cache_file.exists() else {}
     from .aoi import geometry_hash
     akey = f"{geometry_hash(aoi)}:{mode}"
-    todo = [i for i in item_ids if f"{akey}:{i}" not in cache]
-    sem = asyncio.Semaphore(workers)
     out = {i: cache[f"{akey}:{i}"] for i in item_ids if f"{akey}:{i}" in cache}
+    todo = [i for i in item_ids if i not in out]
+    sem = asyncio.Semaphore(workers)
 
     async def one(iid):
         async with sem:
@@ -252,21 +254,52 @@ async def estimate_coverage(client, item_type: str, item_ids: list[str], aoi, ca
                         return iid, None, f"{type(e).__name__}: {e}"
                     await asyncio.sleep(backoff_s * 2 ** attempt)
 
-    done = 0
-    for fut in asyncio.as_completed([one(i) for i in todo]):
-        iid, r, err = await fut
-        done += 1
-        if r is not None:
-            row = coverage_row(r)
-            out[iid] = row
-            if row["aoi_clear"] is not None:
-                cache[f"{akey}:{iid}"] = row
-        else:
-            out[iid] = {"coverage_status": "failed", "error": err}
-        if done % 50 == 0 or done == len(todo):
-            print(f"  coverage {done}/{len(todo)}")
-            manifest.write_json_atomic(cache_file, cache)
+    for rnd in range(1, max_rounds + 1):
+        if not todo:
+            break
+        pending = []
+        for fut in asyncio.as_completed([one(i) for i in todo]):
+            iid, r, err = await fut
+            if r is None:
+                out[iid] = {"coverage_status": "failed", "error": err}
+            elif r.get("status") == "complete" and r.get("clear_percent") is not None:
+                out[iid] = cache[f"{akey}:{iid}"] = coverage_row(r)
+            else:
+                out[iid] = {"coverage_status": "incomplete", "last_status": r.get("status")}
+                pending.append(iid)
+        manifest.write_json_atomic(cache_file, cache)
+        print(f"  coverage round {rnd}: {len(todo) - len(pending)}/{len(todo)} resolved, {len(pending)} still activating")
+        todo = pending
+        if todo and rnd < max_rounds:
+            await asyncio.sleep(poll_s)
     return out
+
+
+def coverage_counts(cov: dict) -> dict:
+    """{complete, incomplete, failed} counts for an estimate_coverage result."""
+    c = {"complete": 0, "incomplete": 0, "failed": 0}
+    for v in cov.values():
+        c[v.get("coverage_status") if v.get("coverage_status") in c else "complete"] += 1
+    return c
+
+
+def gapfill_choice(t: pd.Timestamp, strips: pd.DataFrame, window_h: float, fp_min: float):
+    """Reference strip for a pass without imagery: within +-window_h, prefer
+    strips covering >= fp_min of the match AOI (else the largest footprint),
+    then the highest AOI clear (unknown ranks lowest), then the smallest |dt|.
+    Returns (strip row, signed dt_hours) or None."""
+    if strips.empty:
+        return None
+    dt_h = (strips["acquired"] - t) / pd.Timedelta(hours=1)
+    c = strips.assign(dt_hours=dt_h, adt=dt_h.abs())
+    c = c[c["adt"] <= window_h]
+    if c.empty:
+        return None
+    full = c[c["aoi_footprint"] >= fp_min]
+    c = full if not full.empty else c[c["aoi_footprint"] == c["aoi_footprint"].max()]
+    c = c.assign(cl=c["aoi_clear"].fillna(-1.0)).sort_values(["cl", "adt"], ascending=[False, True])
+    best = c.iloc[0]
+    return best, float(best["dt_hours"])
 
 
 # ---------------------------------------------------------------- strips

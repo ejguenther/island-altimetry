@@ -78,12 +78,18 @@ async def search(ctx: dict, targets: pd.DataFrame, refresh: bool) -> tuple[pd.Da
         cov = await pim.estimate_coverage(client, pc["item_type"], list(need["item_id"]), aoi, P["coverage"],
                                           workers=pc.get("coverage_workers", 4), retries=cfg["retries"],
                                           backoff_s=cfg["retry_backoff_s"], mode=pc.get("coverage_mode", "UDM2"))
+    counts = pim.coverage_counts(cov)
+    print(f"coverage: {counts}")
+    if counts["incomplete"] or counts["failed"]:
+        print("  WARNING: items without a coverage result are treated as unknown clear (never matched); "
+              "re-run planet_search.py to resolve them")
     cdf = pd.DataFrame.from_dict(cov, orient="index").rename_axis("item_id").reset_index()
     items = items[items["item_id"].isin(need["item_id"])].merge(cdf, on="item_id", how="left")
     strips = pim.group_strips(items, aoi, proj)
     if not strips.empty:
         geoms = items.groupby("strip_id")["geometry"].agg(lambda g: shapely.union_all(list(g)))
         strips["clip_km2"] = [pim.area_km2(geoms[s].intersection(search_aoi), proj) for s in strips["strip_id"]]
+    strips.attrs["coverage_counts"] = counts
     return items, strips
 
 
@@ -132,6 +138,7 @@ def main():
         manifest.update(cfg, run_id, "planet_search", {
             "completed_utc": fmt_utc(pd.Timestamp.now(tz="UTC")), "n_targets": len(targets),
             "n_items_considered": len(items), "n_strips": len(strips),
+            "coverage_counts": strips.attrs.get("coverage_counts"),
             "matches_by_tier": tiers.to_dict(), "n_order_strips": len(plan),
             "est_order_km2": float(plan["est_km2"].sum()) if not plan.empty else 0.0,
             "criteria": {k: pc.get(k) for k in ("item_type", "coverage_mode", "match_aoi", "clip_aoi", "scene_cloud_max", "standard_quality_only", "aoi_clear_min",

@@ -68,6 +68,26 @@ $PY scripts/planet_order.py  --site fukutoku_okanoba --download                 
 $PY scripts/planet_qc.py     --site fukutoku_okanoba   # M8c measured UDM2 clear + quicklooks
 ```
 
+### M9: lidar profiles with coincident imagery (no network)
+One figure per core-crossing ATL03 or GEDI L2A pass. Each beam's height profile
+sits beside a downloaded Planet strip, with the beams drawn on the image in matching
+colours. The default `--pick tiered` takes the clearest strip within ±7 d, else the
+clearest within ±32 d (`--tier-days 7 32`), else the temporally closest downloaded
+strip at any distance. The map title names the rule used; the last fallback is shown
+in red with Δt in days. `--pick nearest|clearest` limits the choice to `--max-dt-days`.
+
+```bash
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba                  # all passes
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba --product gedi_l2a --max-dt-days 14
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba --granule ATL03_20210921145752_13741207_007_01
+# gap-fill: clearest strip within ±32 d for passes without imagery, then re-plot them
+$PY scripts/planet_gapfill.py --site fukutoku_okanoba --budget-km2 3000            # dry run
+$PY scripts/planet_gapfill.py --site fukutoku_okanoba --budget-km2 3000 --submit --download
+$PY scripts/plot_track_imagery.py --site fukutoku_okanoba --max-dt-days 32 --pick clearest --missing-only
+```
+Figures go to `outputs/<site>/<run>/figures/track_imagery/` and the pairings to
+`tables/track_imagery_pairs.csv`.
+
 Layout: `data/<site>/aoi/<aoi_hash>/`, `data/<site>/inventory/<run_id>/`,
 `data/<site>/subsets/<product>/<release>/aoi_<hash>/req_<hash>/<granule>.{parquet,json}`
 (immutable raw chunks + sidecars), `data/<site>/analysis/<run_id>/`, and

@@ -77,3 +77,27 @@ ATL03 62/5/0/0, ATL08 42/18/0/6, ATL09 61/5/1/0, ATL24 50/4/0/0, GEDI L2A 26/10/
 - Orders: SR 8b → SR 4b → analytic 4b (+UDM2), clipped to the outer disk and
   harmonized to Sentinel-2. They are budget-capped and only placed with `--submit`.
 - Search, order and QC results: see `docs/m8/NOTES.md`.
+
+## M9 — lidar profiles with coincident imagery
+- `scripts/plot_track_imagery.py` makes one figure per core-crossing pass:
+  68 in total (57 ATL03, 11 GEDI L2A).
+- **Profiles:** one height panel per beam with samples in the core. The y-range
+  is anchored to the geoid (geoid − 10 m up to the 99th percentile of returns
+  within 150 m above it); cloud returns above the view are counted, not plotted.
+- **Map:** the nearest downloaded Planet strip within ±7 d. Beams are drawn in
+  their profile colours, an x marks each beam's along-track zero, and an arrow
+  shows the direction of increasing distance.
+- **Pairing:** 32 passes have imagery (28 ATL03, 4 GEDI); 36 show tracks only.
+  Pairings are in `tables/track_imagery_pairs.csv`.
+- **Geolocation:** on 2021-09-21/24 the tracks run about 300–400 m west of the
+  visible island, consistent with uncontrolled (test-quality) Planet
+  geolocation. Co-register the images before quantitative overlays.
+- **Gap-fill:** `planet_gapfill.py` ordered 16 more strips (about 2,099 km²) so
+  passes without imagery get the clearest strip within ±32 d. With those,
+  54 of 68 figures have imagery. The remaining 14 have no Planet scene within
+  ±32 d. Re-plot with `--max-dt-days 32 --pick clearest --missing-only`.
+- **All 68 redrawn** with the default tiered rule (clearest within ±7 d, else
+  clearest within ±32 d, else nearest available). Breakdown: 36 / 18 / 14. All
+  14 nearest-available fallbacks are pre-eruption passes (2018 to Jan 2021),
+  53–155 d from their image, and are marked red on the map.
+  The `pick_rule` column is in `track_imagery_pairs.csv`.

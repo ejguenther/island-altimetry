@@ -104,6 +104,9 @@ $PY scripts/make_spatial_splits.py                     # frozen split + maps (be
 $PY scripts/simulate_label_tracks.py                   # dense + 9 track layouts
 $PY scripts/run_interpolation.py                       # B0/B1 (IDW chosen on validation)
 $PY scripts/train_coastal_rf.py                        # R1/R2/R3 (add --smoke for a quick check)
+$PY scripts/train_coastal_rf.py --only T1,T2           # terrain features (texture/shape/orientation 3/9/15 + distance)
+$PY scripts/ablate_coastal_features.py                 # drop-one-family + permutation importance (validation only)
+$PY scripts/plot_terrain_features.py                   # QA figure of feature layers over a subset
 $PY scripts/evaluate_coastal_models.py --partition val
 $PY scripts/evaluate_coastal_models.py --partition test   # once, after choices are frozen
 ```

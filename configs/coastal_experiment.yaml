@@ -73,6 +73,18 @@ interp:
   power: 2
   max_radius_m: 2000
 
+features:
+  terrain:                           # T1/T2 (added 2026-10-21 after R1-R3 test; see report "second look")
+    version: 1                       # bump to invalidate cached feature matrices
+    layers: [nir, bright, ndvi]      # bright = mean of the 8 SR bands
+    windows: [3, 9, 15]
+    glcm_levels: 16
+    glcm_offsets: [[0, 1], [1, 1], [1, 0], [1, -1]]
+    gaussian_truncate: 3.0           # sigma = window / 6
+    # whole-scene distance to imagery water / land: an explicit exception to the window-guard rule
+    # (imagery only, no labels; may carry information across split boundaries)
+    distance_features: true
+
 rf:
   n_estimators: 200
   max_depth: 20

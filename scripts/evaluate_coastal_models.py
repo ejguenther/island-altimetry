@@ -33,8 +33,9 @@ from island_altimetry.coastal import grid, masks, metrics, splits
 
 import matplotlib.pyplot as plt  # noqa: E402
 
-METHOD_ORDER = ["B0", "B1", "R1", "R2", "R3"]
-METHOD_COLORS = {"B0": "0.55", "B1": "#2a6fdb", "R1": "#2e9d5b", "R2": "#e07b24", "R3": "#c43d5a"}
+METHOD_ORDER = ["B0", "B1", "R1", "R2", "R3", "T1", "T2"]
+METHOD_COLORS = {"B0": "0.55", "B1": "#2a6fdb", "R1": "#2e9d5b", "R2": "#e07b24", "R3": "#c43d5a",
+                 "T1": "#8a63c9", "T2": "#8a63c9"}
 Z_BINS = [-np.inf, -2, -1, -0.5, 0, 0.5, 1, 2, 3, 5, np.inf]
 D_BINS = [0, 30, 100, 300, 1000, 3000, np.inf]
 STD_BINS = [0, 0.05, 0.1, 0.25, 0.5, np.inf]
@@ -156,14 +157,14 @@ def layout_plot(prim: pd.DataFrame, out: Path, tag: str) -> None:
     fig, axs = plt.subplots(1, 2, figsize=(12, 4.5), sharey=False)
     for ax, dom in zip(axs, ("land", "water")):
         d = prim[prim["domain"] == dom]
-        for m in ("B0", "B1", "R2", "R3"):
+        for m in ("B0", "B1", "R2", "R3", "T2"):
             g = d[(d["method"] == m) & (d["density"] != "dense")]
             if g.empty:
                 continue
             agg = g.groupby("n_tracks")["rmse"].agg(["mean", "min", "max"])
             ax.plot(agg.index, agg["mean"], "o-", color=METHOD_COLORS[m], label=m)
             ax.fill_between(agg.index, agg["min"], agg["max"], color=METHOD_COLORS[m], alpha=0.15)
-        for m, ls in (("R1", "--"), ("B0", ":")):
+        for m, ls in (("R1", "--"), ("T1", "-."), ("B0", ":")):
             g = d[(d["method"] == m) & (d["density"] == "dense")]
             if not g.empty:
                 ax.axhline(g["rmse"].iloc[0], color=METHOD_COLORS[m], ls=ls, label=f"{m} dense")
@@ -179,7 +180,7 @@ def layout_plot(prim: pd.DataFrame, out: Path, tag: str) -> None:
 
 
 def scatter_plot(ev: pd.DataFrame, out: Path) -> None:
-    cases = [("R1", "dense"), ("B1", MAP_LAYOUT), ("R2", MAP_LAYOUT), ("R3", MAP_LAYOUT)]
+    cases = [("R1", "dense"), ("T1", "dense"), ("B1", MAP_LAYOUT), ("R2", MAP_LAYOUT), ("T2", MAP_LAYOUT)]
     fig, axs = plt.subplots(2, len(cases), figsize=(4 * len(cases), 8))
     for j, (m, r) in enumerate(cases):
         c = f"{m}|{r}"
@@ -232,7 +233,7 @@ def own_domain_pred(cells: pd.DataFrame, f: Path) -> pd.DataFrame:
 
 
 def maps(cells, pdir, spec, W, out: Path, code: int) -> None:
-    cases = [("R1", "dense"), ("B1", MAP_LAYOUT), ("R2", MAP_LAYOUT), ("R3", MAP_LAYOUT)]
+    cases = [("R1", "dense"), ("T1", "dense"), ("B1", MAP_LAYOUT), ("R2", MAP_LAYOUT), ("T2", MAP_LAYOUT)]
     t = Affine(*spec["transform"])
     ext = (t.c, t.c + spec["width"] * t.a, t.f + spec["height"] * t.e, t.f)
     ref = as_grid(cells[cells["domain"].isin(ex.DOMAINS)], "z", spec)
@@ -281,7 +282,7 @@ def profiles(cells, pdir, spec, W, out: Path, code: int, n: int = 4, half_len: f
     edges = np.array(sd["edges_s_m"])
     centres = [(edges[i] + edges[i + 1]) / 2 for i, c in enumerate(sd["block_codes"]) if c == code][:n]
     t = Affine(*spec["transform"])
-    cases = [("R1", "dense"), ("B1", MAP_LAYOUT), ("R2", MAP_LAYOUT), ("R3", MAP_LAYOUT)]
+    cases = [("R1", "dense"), ("T1", "dense"), ("B1", MAP_LAYOUT), ("R2", MAP_LAYOUT), ("T2", MAP_LAYOUT)]
     preds = {f"{m} {r}": own_domain_pred(cells, pdir / f"{m}_{r}.parquet") for m, r in cases
              if (pdir / f"{m}_{r}.parquet").exists()}
     grids = {k: as_grid(v, "pred", spec) for k, v in preds.items()}
@@ -300,7 +301,8 @@ def profiles(cells, pdir, spec, W, out: Path, code: int, n: int = 4, half_len: f
             return v
         ax.plot(s, take(ref), color="k", lw=1.4, label="reference")
         for name, g in grids.items():
-            ax.plot(s, take(g), lw=0.8, color=METHOD_COLORS[name.split()[0]], label=name)
+            ax.plot(s, take(g), lw=0.8, color=METHOD_COLORS[name.split()[0]], label=name,
+                    ls=":" if name.startswith("T2") else "-")
         ax.set_ylabel("z (m)")
         ax.set_title(f"profile {k + 1}: across strip at s = {s0:.0f} m (block centre)", fontsize=9)
         if k == 0:

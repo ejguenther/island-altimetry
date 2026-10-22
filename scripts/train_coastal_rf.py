@@ -5,7 +5,9 @@
 
 R1: bands, dense labels. R2: bands, each sparse layout. R3: context features
 (bands + predefined normalized differences/log ratio + 3x3/5x5 local stats),
-each sparse layout. Separate land and water forests with the same declared
+each sparse layout. T1 / T2: terrain features (context + texture, shape and
+orientation at 3/9/15 windows + imagery distance to water/land; see
+features.py), dense / each sparse layout. Separate land and water forests with the same declared
 settings (no hyperparameter search). A domain with fewer than
 rf.min_labels_per_domain labels is marked unsupported. Cells with any NaN
 feature are not predicted (counted). No coordinates, no reference-derived
@@ -38,51 +40,79 @@ from island_altimetry.coastal import config as ccfg
 from island_altimetry.coastal import experiment as ex
 from island_altimetry.coastal import features, grid, masks, metrics
 
-EXPERIMENTS = {"R1": ("bands", "dense"), "R2": ("bands", "sparse"), "R3": ("context", "sparse")}
+EXPERIMENTS = {"R1": ("bands", "dense"), "R2": ("bands", "sparse"), "R3": ("context", "sparse"),
+               "T1": ("terrain", "dense"), "T2": ("terrain", "sparse")}
 
 
 def rss_gb() -> float:
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2
 
 
-def build_features(W: Path, cells: pd.DataFrame, kind: str) -> tuple[np.ndarray, list[str]]:
-    """Feature matrix aligned with cells.parquet order, cached by input hash."""
+def terrain_cfg(cfg: dict) -> dict:
+    return features.TERRAIN_DEFAULTS | cfg.get("features", {}).get("terrain", {})
+
+
+def build_features(W: Path, cells: pd.DataFrame, kind: str, tc: dict | None = None) -> tuple[np.ndarray, list[str]]:
+    """Feature matrix aligned with cells.parquet order, cached by input hash
+    (and, for terrain, the feature definition)."""
     fdir = W / "features"
     sr_f = W / "reference" / "planet_sr.tif"
+    tdef = json.dumps(tc, sort_keys=True) if kind == "terrain" else ""
     key = hashlib.sha256(f"{kind}:{sr_f.stat().st_mtime_ns}:{(W / 'reference' / 'masks.tif').stat().st_mtime_ns}:"
-                         f"{len(cells)}".encode()).hexdigest()[:12]
+                         f"{len(cells)}:{tdef}".encode()).hexdigest()[:12]
     f, meta = fdir / f"{kind}_{key}.npy", fdir / f"{kind}_{key}.json"
     if f.exists() and meta.exists():
         return np.load(f, mmap_mode="r"), json.loads(meta.read_text())["names"]
     with rasterio.open(sr_f) as s:
-        sr, names = s.read(), list(s.descriptions)
+        sr, names, res = s.read(), list(s.descriptions), s.res[0]
     valid = grid.read_band(W / "reference" / "masks.tif", "image_valid").astype(bool)
-    layers = features.feature_layers(sr, names, valid, kind)
+    rows, cols = cells["row"].to_numpy(), cells["col"].to_numpy()
+    families = {}
+    if kind == "terrain":
+        domain = grid.read_band(W / "reference" / "masks.tif", "domain")
+        n_ctx = len(features.feature_layers(sr[:, :1, :1], names, valid[:1, :1], "context"))
+        X = np.empty((len(cells), n_ctx + len(features.terrain_names(tc))), np.float32)
+        fnames = []
+        t0 = time.time()
+        for k, (name, fam, layer) in enumerate(features.terrain_layers(sr, names, valid, domain, res, tc)):
+            X[:, k] = layer[rows, cols]
+            fnames.append(name)
+            families[name] = fam
+            if k % 20 == 0:
+                print(f"    {k} {name} ({time.time() - t0:.0f}s, RSS {rss_gb():.1f} GB)")
+        assert len(fnames) == X.shape[1]
+    else:
+        layers = features.feature_layers(sr, names, valid, kind)
+        X = features.sample(layers, rows, cols)
+        fnames = list(layers)
+        del layers
     del sr
-    X = features.sample(layers, cells["row"].to_numpy(), cells["col"].to_numpy())
-    fnames = list(layers)
-    del layers
     fdir.mkdir(parents=True, exist_ok=True)
     tmp = f.with_suffix(".tmp.npy")
     np.save(tmp, X)
     tmp.replace(f)
+    nan_frac = {n: float(np.isnan(X[:, i]).mean()) for i, n in enumerate(fnames)}
     manifest.write_json_atomic(meta, {"names": fnames, "kind": kind, "n": len(cells), "key": key,
-                                      "definitions": features.__doc__})
+                                      "families": families, "terrain_config": tc if kind == "terrain" else None,
+                                      "nan_frac": nan_frac, "definitions": features.__doc__})
     print(f"  features {kind}: {X.shape}, peak RSS {rss_gb():.1f} GB")
     return X, fnames
 
 
-def fit_predict(X, cells, rt_idx, lab_idx, lab_z, rc, n_estimators) -> tuple:
-    ok = np.isfinite(X[lab_idx]).all(1)
+def fit_predict(X, cells, rt_idx, lab_idx, lab_z, rc, n_estimators, cols=None) -> tuple:
+    """Fit on labelled rows, predict routed rows; `cols` restricts features."""
+    cols = slice(None) if cols is None else np.asarray(cols)
+    Xl = np.asarray(X[lab_idx])[:, cols]
+    ok = np.isfinite(Xl).all(1)
     rf = RandomForestRegressor(n_estimators=n_estimators, max_depth=rc["max_depth"],
                                min_samples_leaf=rc["min_samples_leaf"], n_jobs=rc["n_jobs"], random_state=rc["seed"])
     t0 = time.time()
-    rf.fit(X[lab_idx][ok], lab_z[ok])
+    rf.fit(Xl[ok], lab_z[ok])
     t_fit = time.time() - t0
     pred = np.full(len(rt_idx), np.nan, np.float32)
     t0 = time.time()
     for i in range(0, len(rt_idx), 400_000):
-        xi = np.asarray(X[rt_idx[i:i + 400_000]])
+        xi = np.asarray(X[rt_idx[i:i + 400_000]])[:, cols]
         good = np.isfinite(xi).all(1)
         if good.any():
             pred[i:i + 400_000][good] = rf.predict(xi[good])
@@ -115,7 +145,11 @@ def main():
     for e in todo:
         kind, regime_type = EXPERIMENTS[e]
         if kind not in Xs:
-            Xs[kind] = build_features(W, cells, kind)
+            tc = terrain_cfg(cfg) if kind == "terrain" else None
+            if tc and features.max_support_px(tc) * json.loads((W / "reference" / "grid_spec.json").read_text())["res"][0] \
+                    * np.sqrt(2) >= cfg["splits"]["buffer_m"] / 2:
+                raise SystemExit("terrain windows exceed the split guard (buffer_m / 2)")
+            Xs[kind] = build_features(W, cells, kind, tc)
         X, fnames = Xs[kind]
         for r in [x for x in regs if x.startswith("dense") == (regime_type == "dense")]:
             lab = ex.training_labels(cells, W, r)

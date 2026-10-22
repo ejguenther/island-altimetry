@@ -145,3 +145,92 @@ def test_metrics_counts_reconcile():
     assert m["coverage"] == pytest.approx(0.75)
     assert m["bias"] == pytest.approx(1.0) and m["mae"] == pytest.approx(1.0)
     assert m["rmse"] == pytest.approx(np.sqrt(5 / 3))
+
+
+# ---------------------------------------------------------------- terrain features
+
+from island_altimetry.coastal import texture  # noqa: E402
+
+OFFSETS = [(0, 1), (1, 1), (1, 0), (1, -1)]
+
+
+def _brute_glcm(q, r, c, w, offsets):
+    h = w // 2
+    stats = []
+    for dr, dc in offsets:
+        pairs = []
+        for i in range(r - h, r + h + 1):
+            for j in range(c - h, c + h + 1):
+                i2, j2 = i + dr, j + dc
+                if 0 <= i < q.shape[0] and 0 <= j < q.shape[1] and 0 <= i2 < q.shape[0] and 0 <= j2 < q.shape[1] \
+                        and np.isfinite(q[i, j]) and np.isfinite(q[i2, j2]):
+                    pairs.append((q[i, j], q[i2, j2]))
+        p = np.array(pairs)
+        a, b = p[:, 0], p[:, 1]
+        pooled = np.concatenate([a, b])                   # symmetric GLCM marginals
+        mu, var = pooled.mean(), pooled.var()
+        stats.append([((a - b) ** 2).mean(), (1 / (1 + (a - b) ** 2)).mean(),
+                      ((a * b).mean() - mu * mu) / var if var > 1e-6 else 1.0])
+    return np.mean(stats, axis=0)
+
+
+def test_glcm_matches_brute_force():
+    rng = np.random.default_rng(3)
+    q = rng.integers(0, 16, (25, 25)).astype(float)
+    q[5, 5] = np.nan                                      # invalid pixel excluded from pairs
+    con, hom, cor = texture.glcm_stats(q, 9, OFFSETS)
+    for r, c in [(12, 12), (5, 6), (1, 1), (23, 20)]:
+        np.testing.assert_allclose([con[r, c], hom[r, c], cor[r, c]], _brute_glcm(q, r, c, 9, OFFSETS), rtol=1e-9)
+
+
+def test_entropy_matches_window_histogram():
+    rng = np.random.default_rng(4)
+    q = rng.integers(0, 4, (15, 15)).astype(float)
+    e = texture.local_entropy(q, 5, 16)
+    _, cnt = np.unique(q[5:10, 6:11], return_counts=True)
+    p = cnt / cnt.sum()
+    assert e[7, 8] == pytest.approx(-(p * np.log2(p)).sum())
+
+
+def test_structure_tensor_orientation_and_coherence():
+    rr, cc = np.mgrid[0:80, 0:80].astype(float)
+    phi = np.deg2rad(30)                                  # gradient direction from +col toward +row
+    stripes = np.sin(0.6 * (cc * np.cos(phi) + rr * np.sin(phi)))
+    valid = np.ones(stripes.shape, bool)
+    c2, s2, coh = texture.structure_tensor(stripes, valid, 15)
+    theta = 0.5 * np.degrees(np.arctan2(s2[40, 40], c2[40, 40]))
+    assert theta == pytest.approx(30, abs=2) and coh[40, 40] > 0.95
+    noise = np.random.default_rng(5).normal(size=(80, 80))
+    assert texture.structure_tensor(noise, valid, 15)[2][40, 40] < 0.3
+
+
+def test_hessian_ridge_signs():
+    rr, cc = np.mgrid[0:41, 0:41].astype(float)
+    ridge = np.exp(-((cc - 20) ** 2) / 8)                 # bright N-S line
+    log, l1, l2 = texture.hessian_eigs(texture.normalized_gaussian(ridge, np.ones_like(ridge, bool), 1.0))
+    assert l2[20, 20] < -0.05 and abs(l1[20, 20]) < 1e-3 and log[20, 20] < 0
+
+
+def test_normalized_gaussian_ignores_invalid_values():
+    a = np.ones((21, 21))
+    valid = np.ones_like(a, bool)
+    valid[10, 10] = False
+    b = a.copy()
+    b[10, 10] = 1e6                                       # garbage at the invalid pixel
+    np.testing.assert_allclose(texture.normalized_gaussian(b, valid, 1.5), 1.0)
+    valid[:] = False
+    valid[0, 0] = True
+    assert np.isnan(texture.normalized_gaussian(a, valid, 0.5)[20, 20])
+
+
+def test_terrain_windows_inside_split_guard():
+    tc = features.TERRAIN_DEFAULTS
+    assert features.max_support_px(tc) * 3 * np.sqrt(2) < 150 / 2
+    assert len(features.terrain_names(tc)) == 3 * 3 * (7 + 4 + 3) + 2
+
+
+def test_distance_to_water():
+    m = np.zeros((5, 10), bool)
+    m[:, 0] = True
+    d = texture.distance_to(m, 3.0)
+    assert (d[:, 0] == 0).all() and np.all(np.diff(d[2]) == 3.0)

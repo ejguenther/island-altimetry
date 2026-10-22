@@ -93,14 +93,12 @@ async def search(ctx: dict, targets: pd.DataFrame, refresh: bool) -> tuple[pd.Da
     return items, strips
 
 
-async def search_window(cfg: dict, aoi, ref_time: pd.Timestamp, refresh: bool) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Coastal mode: every strip in an explicit date window over a supplied
-    polygon, with UDM2 coverage over that polygon and |dt| to the reference
-    survey time. No lidar targets are involved."""
+async def search_window(pc: dict, P: dict, aoi, t0, t1, ref_time: pd.Timestamp, refresh: bool,
+                        retries: int = 3, backoff_s: float = 20) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Every strip in an explicit date window [t0, t1) over a supplied polygon,
+    with UDM2 coverage over that polygon and dt to `ref_time` (a survey time).
+    No lidar targets are involved. `P` holds catalog/coverage/thumbs paths."""
     from planet import Session
-    from island_altimetry.coastal.config import planet_paths
-    pc, P = cfg["imagery"]["planet"], planet_paths(cfg)
-    t0, t1 = config.parse_utc(pc["search_from"]), config.parse_utc(pc["search_to"])
     c = aoi.centroid
     proj = pim.Projector(c.x, c.y)
     async with Session() as sess:
@@ -113,10 +111,19 @@ async def search_window(cfg: dict, aoi, ref_time: pd.Timestamp, refresh: bool) -
             return items, pd.DataFrame()
         items["item_footprint"] = [pim.footprint_fraction(g, aoi, proj) for g in items["geometry"]]
         items = items[items["item_footprint"] > 0]
+        fp_min = pc.get("strip_footprint_prefilter")
+        if fp_min:   # local geometry only: skip coverage requests for strips that cannot cover the AOI
+            a = proj(aoi)
+            fp = items.groupby("strip_id")["geometry"].agg(
+                lambda g: proj(shapely.union_all(list(g))).intersection(a).area / a.area)
+            items = items[items["strip_id"].isin(fp[fp >= fp_min].index)]
+            print(f"  {int((fp >= fp_min).sum())} of {len(fp)} strips cover >= {fp_min:.2f} of the AOI")
+            if items.empty:
+                return items, pd.DataFrame()
         print(f"{len(items)} items overlap the AOI -> coverage estimates")
         cov = await pim.estimate_coverage(client, pc["item_type"], list(items["item_id"]), aoi, P["coverage"],
-                                          workers=pc.get("coverage_workers", 4), retries=cfg["retries"],
-                                          backoff_s=cfg["retry_backoff_s"], mode=pc.get("coverage_mode", "UDM2"))
+                                          workers=pc.get("coverage_workers", 4), retries=retries,
+                                          backoff_s=backoff_s, mode=pc.get("coverage_mode", "UDM2"))
         thumbs = {i["id"]: i["_links"].get("thumbnail") for i in raw if i["id"] in set(items["item_id"])}
         await fetch_thumbs(sess, thumbs, P["thumbs"])
     counts = pim.coverage_counts(cov)
@@ -163,7 +170,10 @@ def coastal_main(cfg_path: str, refresh: bool) -> None:
     a0, a1 = (pd.Timestamp(t) for t in src["findings"]["acquisition_utc"])
     ref_time = a0 + (a1 - a0) / 2
     aoi = read_geojson(D["work"] / "audit" / "footprint.geojson")
-    items, strips = asyncio.run(search_window(cfg, aoi, ref_time, refresh))
+    pc = cfg["imagery"]["planet"]
+    items, strips = asyncio.run(search_window(pc, P, aoi, config.parse_utc(pc["search_from"]),
+                                              config.parse_utc(pc["search_to"]), ref_time, refresh,
+                                              cfg["retries"], cfg["retry_backoff_s"]))
     if strips.empty:
         raise SystemExit("no PlanetScope strips overlap the footprint in the search window")
     strips = strips.assign(abs_dt_days=strips["dt_hours"].abs() / 24).sort_values(

@@ -121,6 +121,25 @@ Layout: `data/<site>/aoi/<aoi_hash>/`, `data/<site>/inventory/<run_id>/`,
 Planet imagery: `data/<site>/imagery/planet/{<run_id>/catalog/, coverage_cache.json, orders.json, scenes/<YYYYMMDD>_<strip>/}`.
 `data/` and `outputs/` are not committed.
 
+### CNN terrain experiment (center-label training, FCN inference, 8 coastal sites)
+Above-water bare-terrain elevation from PlanetScope context with a stride-1 dilated CNN (R = 33 px),
+trained on one center label per patch and applied fully convolutionally. Configured in
+`configs/cnn_terrain.yaml`; plan in `plan/cnn_terrain_feasibility_plan.md`. Needs a CUDA PyTorch
+(`pip install torch --index-url https://download.pytorch.org/whl/cu124`) and Planet login.
+```bash
+$PY scripts/prepare_cnn_sites.py --stage audit          # LAZ/DTM audit, ground footprint, frozen crops
+$PY scripts/prepare_cnn_sites.py --stage search         # rule-based scene pick per site (no quota)
+$PY scripts/prepare_cnn_sites.py --stage order          # dry run; add --submit after approval, then --stage download
+$PY scripts/prepare_cnn_sites.py --stage build          # exact-grid rasters, target, masks, site QA
+$PY scripts/make_cnn_splits.py                          # seeded site roles + context-guarded blocks
+$PY scripts/sample_cnn_centers.py                       # dense / sparse pools, val sets, scalers
+$PY scripts/train_terrain_cnn.py --regime dense --seed 0 # also --regime sparse, seeds 1-2, --context small
+$PY scripts/predict_terrain_fcn.py --run dense_large_s0 --qa
+$PY scripts/run_cnn_baselines.py                        # constant, pooled RF, within-site IDW
+$PY scripts/evaluate_terrain_cnn.py --partition val     # then --partition test once, after freezing
+```
+Results: `outputs/cnn_terrain/cnn_terrain_feasibility_report.md`.
+
 ### Rerun, resume, update
 - **Resume:** re-run `acquire.py`; verified chunks (sidecar status + sha256) are
   skipped, failed or missing ones are retried with bounded exponential backoff.

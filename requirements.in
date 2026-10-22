@@ -12,3 +12,8 @@ requests
 planet>=3.6,<4
 rasterio
 pytest
+# coastal elevation experiment
+scipy
+scikit-learn
+joblib
+laspy[lazrs]

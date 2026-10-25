@@ -17,3 +17,5 @@ scipy
 scikit-learn
 joblib
 laspy[lazrs]
+# CNN terrain experiment (CUDA 12.4 wheels: pip install torch --index-url https://download.pytorch.org/whl/cu124)
+torch

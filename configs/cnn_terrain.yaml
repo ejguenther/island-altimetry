@@ -1,0 +1,114 @@
+# CNN terrain feasibility (plan/cnn_terrain_feasibility_plan.md): center-label training, FCN inference,
+# above-water bare terrain, eight independent NAVD88 coastal landscape groups (user decision 2026-10-21).
+# Shared keys (data_root, output_root, retries, imagery.planet defaults) come from configs/islands.yaml.
+
+experiment: cnn_terrain
+base_commit: 7c14b27                # experiment/cnn-terrain-fcn branched here (contains the RF experiment)
+
+paths:
+  dem_root: /home/ejg2736/network_drives/walker/exports/nfs_share/Data/OpenData/Topobathy/dem
+  laz_root: /home/ejg2736/network_drives/walker/exports/nfs_share/Data/OpenData/Topobathy
+
+# group id -> source directory / epoch. Groups are independent landscapes; duck_nc_2014_2018 (same
+# barrier island as duck_nc_2015_2020) and tampa_bay_fl (~20 km from Egmont Key) are deliberately unused.
+sites:
+  boca_grande_fl:     {dir: boca_grande_fl,     epoch: 2022}
+  breton_island_la:   {dir: breton_island_la,   epoch: 2022}
+  corpus_christi_tx:  {dir: corpus_christi_tx,  epoch: 2019}
+  duck_nc:            {dir: duck_nc_2015_2020,  epoch: 2020}
+  egmont_key_fl:      {dir: egmont_key_fl,      epoch: 2022}
+  # force_window: fallback applied 2026-10-22 when no single Planet strip covers the elongated footprint crop
+  # (east coast 164 km2: best strip 43 %; keys 54 km2: 0 of 410 strips >= 99 %); the crop becomes the densest
+  # crop_max_km2 ground window (from LAZ only; imagery not used)
+  florida_east_coast: {dir: florida_east_coast, epoch: 2022, force_window: true}
+  florida_keys:       {dir: florida_keys,       epoch: 2019, force_window: true}
+  florida_panhandle:  {dir: florida_panhandle,  epoch: 2022, tile_glob: "20220628_*", strip_id: "5730968"}
+
+vertical_datum_epsg: 5703           # NAVD88; any other vertical CRS makes a site incompatible
+dtm_nodata: -9999
+ground_class: 2
+
+audit:
+  support_cell_m: 30
+  support_min_returns: 5            # per 30 m cell for the ground footprint
+  crop_max_km2: 100                 # larger footprints: densest-ground window of this area
+  crop_buffer_m: 200
+
+imagery:
+  bands: [blue, green, red, nir]    # common to 4-band (Dove-Classic) and 8-band (SuperDove) SR
+  bundles: [analytic_8b_sr_udm2, analytic_sr_udm2]
+  aoi_clear_min: 0.95
+  aoi_footprint_min: 0.99
+  scene_cloud_max: 0.5
+  windows_days: [14, 45, 120]       # widened in order only if no scene passes
+  order_budget_km2: 800             # total over the 7 new orders; each order is approved first
+
+target:
+  # point_mean (user decision 2026-10-22): mean of class-2 ground returns per 3 m cell. The Breton Island and
+  # Florida Keys DTMs sit 0.72 m / 1.35 m below their own ground returns (other sites agree within 3 cm).
+  # dtm_mean: area-weighted 1 m DTM mean (kept as QA band z_mean).
+  definition: point_mean
+  min_valid_fraction: 0.90          # dtm_mean only
+  min_ground_returns: 4             # LAZ class-2 returns per 3 m cell (DTMs are gap-filled elsewhere)
+  max_ndsm_m: 1.0                   # DSM - target above this: building/vegetation, excluded as center
+  land_rule: nir                    # imagery-only land/water/ambiguous (coastal.masks.nir_thresholds)
+  water_ndwi_min: -0.15
+  shoreline_buffer_px: 2
+  min_eligible_centers: 50000       # fewer: site insufficient (reported, roles revised)
+
+model:
+  channels: [32, 32, 64, 64, 32]
+  dilations: [1, 2, 4, 8, 1]        # R = 33 px (99 m)
+  dilations_small: [1, 1, 2, 3, 1]  # R = 17 px, optional comparison
+
+roles:
+  seed: 20261021
+  n_fit: 5
+  n_transfer_val: 1
+  n_transfer_test: 2
+
+splits:
+  fractions: {train: 0.70, val: 0.15, test: 0.15}
+  block_length_m: 1750
+  guard_m: 150                      # total gap between train and held-out centers; > 2 x 16 px x 3 m
+  seed: 7
+
+sampling:
+  dense_cap_per_site: 50000
+  track_spacing_m: 1000
+  track_azimuth_deg: 0
+  track_offset_frac: 0.0
+  val_cap_per_site: 20000
+  seed: 11
+
+train:
+  optimizer: adamw
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  batch_size: 128
+  samples_per_epoch: 50000
+  # selection (user decision 2026-10-22): fixed equal budget, last checkpoint final. The 0.5/0.5 criterion
+  # was dominated by single-site (Breton) bias noise and stopped dense at epoch 9 with its epoch-1 weights.
+  selection: fixed_budget
+  fixed_epochs: 30                  # 1.5M AOI-balanced examples for every run
+  max_epochs: 50                    # selection: criterion only
+  patience: 8                       # selection: criterion only
+  amp_dtype: bfloat16
+  augment: [rot90, flip]
+  workers: 4
+  seed: 0
+  seeds_final: [0, 1, 2]
+  criterion_weights: {within_val: 0.5, transfer_val: 0.5}
+
+rf:
+  n_estimators: 200
+  max_depth: 20
+  min_samples_leaf: 5
+  n_jobs: 8
+  seed: 42
+
+interp: {k: 32, power: 1.0, max_radius_m: 2000}   # IDW setting selected in the RF experiment
+
+inference:
+  tile: 512
+  vram_target_gb: 16

@@ -52,3 +52,22 @@ def _sample(ln: LineString, d: np.ndarray) -> np.ndarray:
     (x0, y0), (x1, y1) = ln.coords[0], ln.coords[-1]
     f = d / ln.length
     return np.column_stack([x0 + (x1 - x0) * f, y0 + (y1 - y0) * f])
+
+
+def layout_by_spacing(bounds, azimuth_deg: float, spacing_m: float, offset_frac: float) -> list[LineString]:
+    """Parallel lines exactly `spacing_m` apart (cross-track) covering `bounds`,
+    the first at (0.5 + offset_frac) * spacing from the cross-track minimum."""
+    minx, miny, maxx, maxy = bounds
+    cx, cy = (minx + maxx) / 2, (miny + maxy) / 2
+    a = np.deg2rad(azimuth_deg)
+    u = np.array([np.sin(a), np.cos(a)])
+    v = np.array([u[1], -u[0]])
+    corners = np.array([[minx, miny], [minx, maxy], [maxx, miny], [maxx, maxy]]) - [cx, cy]
+    cmin, cmax = (corners @ v).min(), (corners @ v).max()
+    half_len = np.abs(corners @ u).max() + 1.0
+    lines, off = [], cmin + (0.5 + offset_frac) * spacing_m
+    while off <= cmax:
+        p = np.array([cx, cy]) + v * off
+        lines.append(LineString([p - u * half_len, p + u * half_len]))
+        off += spacing_m
+    return lines

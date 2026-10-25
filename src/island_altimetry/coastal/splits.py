@@ -67,7 +67,7 @@ def coverage_ok(cells: pd.DataFrame, part: np.ndarray, min_cells: int, domains=(
 
 
 def make_split(cells: pd.DataFrame, axis: dict, n_blocks: int, fractions: dict, buffer_m: float, seed: int,
-               min_cells: int = 500, max_tries: int = 50) -> dict:
+               min_cells: int = 500, max_tries: int = 50, domains=(1, 2)) -> dict:
     """Deterministic: seeds seed, seed+1, ... until the coverage check passes;
     every attempt is recorded."""
     s = along_axis(cells["x"].to_numpy(), cells["y"].to_numpy(), axis["centroid"], axis["direction"])
@@ -77,7 +77,7 @@ def make_split(cells: pd.DataFrame, axis: dict, n_blocks: int, fractions: dict, 
         rng = np.random.default_rng(seed + k)
         codes = assign_blocks(n_blocks, fractions, rng)
         blk, part = partition_cells(s, edges, codes, buffer_m)
-        ok, cov = coverage_ok(cells, part, min_cells)
+        ok, cov = coverage_ok(cells, part, min_cells, domains)
         tries.append({"seed": seed + k, "block_codes": codes.tolist(), "coverage_ok": bool(ok)})
         if ok:
             return {"s": s, "edges": edges, "block_codes": codes, "block": blk, "partition": part,
